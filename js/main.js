@@ -41,38 +41,25 @@
     return '챕터 ' + ch.id + ' · ' + ch.name;
   }
 
-  // ---- 유닛 컬렉션 헬퍼 (보드 + 벤치) ----
-  function allEntries() { return run.board.concat(run.bench); }
+  // ---- 유닛 컬렉션 헬퍼 (보드 3×3 단일 — v0.8 벤치 폐지) ----
+  var BOARD_MAX = 9;
+  function allEntries() { return run.board; }
   function findByUid(uid) {
-    var all = allEntries();
-    for (var i = 0; i < all.length; i++) if (all[i].uid === uid) return all[i];
+    for (var i = 0; i < run.board.length; i++) if (run.board[i].uid === uid) return run.board[i];
     return null;
   }
-  function collectionOf(e) { return run.board.indexOf(e) >= 0 ? run.board : run.bench; }
-  function zoneOfEntry(e) {
-    return collectionOf(e) === run.board
-      ? { type: 'cell', col: e.col, row: e.row }
-      : { type: 'bench', slot: e.slot };
-  }
+  function zoneOfEntry(e) { return { type: 'cell', col: e.col, row: e.row }; }
   function detach(e) {
-    var c = collectionOf(e);
-    c.splice(c.indexOf(e), 1);
+    run.board.splice(run.board.indexOf(e), 1);
   }
   function attach(e, zone) {
-    if (zone.type === 'cell') { e.col = zone.col; e.row = zone.row; run.board.push(e); }
-    else { e.slot = zone.slot; run.bench.push(e); }
+    e.col = zone.col; e.row = zone.row;
+    run.board.push(e);
   }
   function entryAtZone(zone) {
-    var i;
-    if (!zone) return null;
-    if (zone.type === 'cell') {
-      for (i = 0; i < run.board.length; i++) {
-        if (run.board[i].col === zone.col && run.board[i].row === zone.row) return run.board[i];
-      }
-    } else if (zone.type === 'bench') {
-      for (i = 0; i < run.bench.length; i++) {
-        if (run.bench[i].slot === zone.slot) return run.bench[i];
-      }
+    if (!zone || zone.type !== 'cell') return null;
+    for (var i = 0; i < run.board.length; i++) {
+      if (run.board[i].col === zone.col && run.board[i].row === zone.row) return run.board[i];
     }
     return null;
   }
@@ -81,7 +68,7 @@
   function startChapter(ci) {
     run = {
       chIdx: ci, wave: 1, lives: D.LIVES,
-      board: [], bench: [], gold: D.SHOP.startBonus, nextUid: 1,
+      board: [], gold: D.SHOP.startBonus, nextUid: 1,
       shop: null, prepT: 0, lastSec: -1,
       phase: 'prep', battle: null, rng: L.makeRng(Date.now() % 1e9)
     };
@@ -113,7 +100,7 @@
   // ---- 상점 ----
   function canBuySlot(slot) {
     if (slot.sold || slot.price > run.gold) return false;
-    if (run.board.length < 8 || run.bench.length < 8) return true;
+    if (run.board.length < BOARD_MAX) return true;
     // 만석: 확정 카드가 즉시 머지 가능할 때만 허용 (랜덤 카드는 자리 필요)
     if (slot.kind !== 'unit') return false;
     return allEntries().some(function (u) {
@@ -159,30 +146,20 @@
     refreshShop();
   }
 
-  // 카드 수급: 보드 빈칸 자동 배치 → 만석이면 벤치 → 둘 다 만석이면 즉시 머지
+  // 카드 수급: 보드 빈칸 자동 배치 → 만석이면 즉시 머지
   function placeCard(cid) {
-    if (run.board.length < 8) { placePreferred(cid); return; }
-    if (run.bench.length < 8) { pushBench(cid); return; }
+    if (run.board.length < BOARD_MAX) { placePreferred(cid); return; }
     mergeIntoAny(cid);
   }
 
   function placePreferred(cid) {
     var arch = D.UNITS[cid].arch;
     var front = (arch === 'tank' || arch === 'melee' || arch === 'assassin');
-    var rows = front ? [0, 1] : [1, 0];
-    for (var ri = 0; ri < 2; ri++) for (var c = 0; c < 4; c++) {
+    var rows = front ? [0, 1, 2] : [2, 1, 0]; // 근접 앞줄, 원거리·지원 뒷줄
+    for (var ri = 0; ri < 3; ri++) for (var c = 0; c < 3; c++) {
       var row = rows[ri];
       if (!entryAtZone({ type: 'cell', col: c, row: row })) {
-        run.board.push({ uid: run.nextUid++, unitId: cid, star: 1, col: c, row: row, slot: 0 });
-        return;
-      }
-    }
-  }
-
-  function pushBench(cid) {
-    for (var s = 0; s < 8; s++) {
-      if (!entryAtZone({ type: 'bench', slot: s })) {
-        run.bench.push({ uid: run.nextUid++, unitId: cid, star: 1, slot: s, col: 0, row: 0 });
+        run.board.push({ uid: run.nextUid++, unitId: cid, star: 1, col: c, row: row });
         return;
       }
     }
@@ -216,21 +193,8 @@
     run.battle = B.createBattle(run.board, enemies, Math.floor(run.rng() * 1e9));
   }
 
-  // 제한시간 초과: 보드가 비어 있으면 벤치를 자동 출전시킨 뒤 시작
+  // 제한시간 초과: 보드가 비어 있으면(구매 전무) 목숨 소실 처리
   function autoStartWave() {
-    if (run.board.length === 0 && run.bench.length > 0) {
-      while (run.board.length < 8 && run.bench.length > 0) {
-        var e = run.bench[0];
-        var placed = false;
-        for (var r = 0; r < 2 && !placed; r++) for (var c = 0; c < 4; c++) {
-          if (!entryAtZone({ type: 'cell', col: c, row: r })) {
-            detach(e); attach(e, { type: 'cell', col: c, row: r });
-            placed = true; break;
-          }
-        }
-        if (!placed) break;
-      }
-    }
     if (run.board.length === 0) {
       loseLife();
       return;
@@ -387,7 +351,7 @@
     if (run) {
       UI.render({
         mode: (run.phase === 'battle' || run.phase === 'ended') ? 'battle' : 'prep',
-        board: run.board, bench: run.bench, battle: run.battle,
+        board: run.board, battle: run.battle,
         hints: mergeHints(), drag: drag, dropZone: dropZone,
         time: now / 1000
       });

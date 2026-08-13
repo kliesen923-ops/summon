@@ -40,15 +40,18 @@ ok('호크아이 사거리 오버라이드 8칸', L.statsFor('hawkeye', 1).range
 ok('아발리스트 사거리 4칸', L.statsFor('arbalist', 1).range === 4);
 ok('클레릭 HPS 8', L.statsFor('cleric', 1).hps === 8);
 ok('비숍 HPS 27 (사다리 적용)', L.statsFor('bishop', 1).hps === 27);
-// T3 = 머지 단계 5 (기준표 §4 T3 행)
-eq('센티넬(T3 탱킹)', hpatk('sentinel', 1), [1825, 76]);
-eq('워로드(T3 근접딜)', hpatk('warlord', 1), [1140, 114]);
-eq('스톰레인저(T3 원거리)', hpatk('stormranger', 1), [795, 114]);
-eq('아크메이지(T3 광역)', hpatk('archmage', 1), [685, 167]);
-eq('세인트(T3 지원힐)', hpatk('saint', 1), [1025, 61]);
-eq('팬텀(T3 암살)', hpatk('phantom', 1), [795, 99]);
-eq('스피릿로드(T3 소환)', hpatk('spiritlord', 1), [685, 68]);
-ok('세인트 HPS 61', L.statsFor('saint', 1).hps === 61);
+// 성급 통일 사다리 (v0.8): n = (티어-1)×3 + (성급-1)
+eq('버서커 ★3 (n=5)', hpatk('berserker', 3), [1140, 114]);
+eq('센티넬 ★1 (n=6, T3 탱킹)', hpatk('sentinel', 1), [2735, 114]);
+eq('워로드 ★1 (T3 근접딜)', hpatk('warlord', 1), [1710, 171]);
+eq('스톰레인저 ★1 (T3 원거리)', hpatk('stormranger', 1), [1195, 171]);
+eq('아크메이지 ★1 (T3 광역)', hpatk('archmage', 1), [1025, 251]);
+eq('세인트 ★1 (T3 지원힐)', hpatk('saint', 1), [1540, 91]);
+eq('팬텀 ★1 (T3 암살)', hpatk('phantom', 1), [1195, 148]);
+eq('스피릿로드 ★1 (T3 소환)', hpatk('spiritlord', 1), [1025, 103]);
+eq('워로드 ★3 (n=8, 최상단)', hpatk('warlord', 3), [3845, 384]);
+ok('세인트 HPS 91', L.statsFor('saint', 1).hps === 91);
+ok('전 티어 성급 상한 3', D.STAR_CAP[1] === 3 && D.STAR_CAP[2] === 3 && D.STAR_CAP[3] === 3);
 ok('유닛 총 63종 (7+28+28)', Object.keys(D.UNITS).length === 63);
 ok('진화표 T2 28종', Object.keys(D.EVOLUTION[2]).length === 28);
 ok('진화표 T3 28종', Object.keys(D.EVOLUTION[3]).length === 28);
@@ -59,10 +62,11 @@ eq('성급 다르면 무반응', L.mergeResult('knight', 1, 'knight', 2), null);
 eq('T1 상한 ★3에서 동일유닛 = 순혈 진화', L.mergeResult('knight', 3, 'knight', 3), { type: 'evolve', unitId: 'grandknight' });
 eq('비최대 이종 무반응', L.mergeResult('knight', 1, 'warrior', 1), null);
 eq('T2 성급 상승', L.mergeResult('gladiator', 1, 'gladiator', 1), { type: 'star', unitId: 'gladiator', star: 2 });
-eq('T2★2 동일유닛 = T3 순혈 진화', L.mergeResult('gladiator', 2, 'gladiator', 2), { type: 'evolve', unitId: 'warlord' });
-eq('티어 혼합 최대성급 무반응', L.mergeResult('knight', 3, 'gladiator', 2), null);
-eq('T3 쌍 무반응(T4 미구현)', L.mergeResult('sentinel', 1, 'warlord', 1), null);
-eq('T3 동일유닛 무반응', L.mergeResult('sentinel', 1, 'sentinel', 1), null);
+eq('T2★2 = ★3 상승 (성급 통일)', L.mergeResult('gladiator', 2, 'gladiator', 2), { type: 'star', unitId: 'gladiator', star: 3 });
+eq('T2★3 동일유닛 = T3 순혈 진화', L.mergeResult('gladiator', 3, 'gladiator', 3), { type: 'evolve', unitId: 'warlord' });
+eq('티어 혼합 ★3 무반응', L.mergeResult('knight', 3, 'gladiator', 3), null);
+eq('T3 성급 상승', L.mergeResult('sentinel', 1, 'sentinel', 1), { type: 'star', unitId: 'sentinel', star: 2 });
+eq('T3★3 쌍 무반응(T4 미구현)', L.mergeResult('sentinel', 3, 'sentinel', 3), null);
 // 클래스 쌍 → T2 전 28종 (매트릭스 v1.5 §2 전수)
 var pairs = {
   'knight+knight': 'grandknight', 'warrior+warrior': 'berserker', 'archer+archer': 'hawkeye',
@@ -91,15 +95,16 @@ eq('판매가 T1★2', L.sellValue('knight', 2), 2);
 eq('판매가 T1★3', L.sellValue('knight', 3), 4);
 eq('판매가 T2★1', L.sellValue('grandknight', 1), 8);
 eq('판매가 T2★2', L.sellValue('grandknight', 2), 16);
+eq('판매가 T2★3 상한 16', L.sellValue('grandknight', 3), 16);
 eq('판매가 T3 상한 16 (구매가 18G 차익 차단)', L.sellValue('sentinel', 1), 16);
 
-// ---- 2.7) T2★2 조합 → T3 전 28쌍 (클래스 대표 T2 순혈 사용) ----
+// ---- 2.7) T2★3 조합 → T3 전 28쌍 (클래스 대표 T2 순혈 사용) ----
 (function () {
   var rep = { K: 'grandknight', W: 'berserker', A: 'hawkeye', M: 'highmage',
               C: 'bishop', R: 'assassin', N: 'highsummoner' };
   Object.keys(D.EVOLUTION[3]).forEach(function (key) {
     var cls = key.split('+');
-    var r = L.mergeResult(rep[cls[0]], 2, rep[cls[1]], 2);
+    var r = L.mergeResult(rep[cls[0]], 3, rep[cls[1]], 3);
     eq('T3 진화 ' + key, r && r.unitId, D.EVOLUTION[3][key]);
   });
 }());
@@ -177,16 +182,13 @@ function tryMergesArmy(army) {
 }
 
 function makeRoster(army) {
-  // 강한 순(머지 단계) 8체 출전, 근접 앞줄 배치
-  function power(u) { return L.mergeSteps(D.UNITS[u.unitId].tier, u.star); }
-  var roster = army.slice().sort(function (a, b) {
-    return power(b) - power(a);
-  }).slice(0, 8).map(function (u) { return { unitId: u.unitId, star: u.star, col: 0, row: 0 }; });
+  // 3×3 보드 전원 출전 (v0.8 벤치 폐지), 근접 앞줄 배치
+  var roster = army.map(function (u) { return { unitId: u.unitId, star: u.star, col: 0, row: 0 }; });
   var taken = {};
   roster.forEach(function (u) {
-    var pref = frontArch(D.UNITS[u.unitId].arch) ? 0 : 1;
-    var rows = [pref, 1 - pref], done = false;
-    for (var ri = 0; ri < 2 && !done; ri++) for (var c = 0; c < 4; c++) {
+    var rows = frontArch(D.UNITS[u.unitId].arch) ? [0, 1, 2] : [2, 1, 0];
+    var done = false;
+    for (var ri = 0; ri < 3 && !done; ri++) for (var c = 0; c < 3; c++) {
       var key = rows[ri] + ',' + c;
       if (!taken[key]) { taken[key] = 1; u.row = rows[ri]; u.col = c; done = true; break; }
     }
@@ -212,7 +214,7 @@ function runChapter(chIdx, seed) {
         var mergeable = s.kind === 'unit' && army.some(function (u) {
           return !!L.mergeResult(u.unitId, u.star, s.unitId, 1);
         });
-        if (army.length >= 16 && !mergeable) continue;
+        if (army.length >= 9 && !mergeable) continue; // 보드 9칸 (벤치 없음)
         gold -= s.price;
         s.sold = true;
         army.push({ unitId: L.resolveShopUnit(s, rng), star: 1 });

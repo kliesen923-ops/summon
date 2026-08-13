@@ -6,14 +6,14 @@
 (function (global) {
   'use strict';
 
-  // ---- 전장 기하 ----
+  // ---- 전장 기하 (v0.8: 3×3 보드, 벤치 폐지) ----
   var GEOM = {
     FIELD_W: 405,          // 논리 해상도 (9:16 = 405x720)
-    FIELD_H: 470,          // 상단 전장 영역 높이
+    FIELD_H: 512,          // 상단 전장 영역 높이 (벤치 줄 흡수)
     CELL_PX: 90,           // 사거리 1칸 = 90px
-    COLS: 4, ROWS: 2,
-    cellX: function (c) { return 50.6 + 101.25 * c; },
-    cellY: function (r) { return r === 0 ? 380 : 442; } // r0=앞줄, r1=뒷줄
+    COLS: 3, ROWS: 3,
+    cellX: function (c) { return 67.5 + 135 * c; },
+    cellY: function (r) { return [352, 416, 480][r]; } // r0=앞줄 ~ r2=뒷줄
   };
 
   // ---- 역할 아키타입 (스탯 기준표 v0.1 §2~3, §5) ----
@@ -137,7 +137,7 @@
     }
   };
 
-  var STAR_CAP = { 1: 3, 2: 2, 3: 1 }; // 티어 → 성급 상한 (성급 피라미드, T3 = 성급 없음)
+  var STAR_CAP = { 1: 3, 2: 3, 3: 3 }; // 성급 통일 (v0.8): 전 티어 ★3까지, ★3 둘 = 상위 티어 진화
 
   // ---- 클래스 스킬 (마나 가득 시 자동 시전, 기준표 §5) ----
   var SKILLS = {

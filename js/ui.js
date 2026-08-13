@@ -7,7 +7,7 @@
   var D = global.DATA, L = global.LOGIC;
   var G = D.GEOM;
   var canvas, ctx, cbs;
-  var CELL_W = 94, CELL_H = 56;
+  var CELL_W = 126, CELL_H = 56;
 
   // ---- 화면 스케일 맞춤 ----
   function fitApp() {
@@ -360,42 +360,23 @@
     drawBar(e.x - e.r, e.y - e.r - 8, e.r * 2, 4, e.hp / e.maxHp, '#e05656');
   }
 
-  // ---- 벤치 줄 + 판매 존 (전장 아래 y≈490 한 줄) ----
-  var BENCH_Y = 490, BENCH_SLOT = 38, SELL_X = 382;
-  function benchX(i) { return 28 + 44 * i; }
+  // ---- 판매 존 (보드 우상단, 준비 단계 전용 — v0.8 벤치 폐지) ----
+  var SELL_X = 375, SELL_Y = 302;
 
-  function drawBenchRow(view) {
-    var battle = view.mode === 'battle';
-    ctx.save();
-    ctx.globalAlpha = battle ? 0.4 : 1;
-    for (var i = 0; i < 8; i++) {
-      roundRect(benchX(i) - BENCH_SLOT / 2, BENCH_Y - BENCH_SLOT / 2, BENCH_SLOT, BENCH_SLOT, 6);
-      ctx.fillStyle = '#ffffff0a';
-      ctx.fill();
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = (view.dropZone && view.dropZone.type === 'bench' && view.dropZone.slot === i)
-        ? '#ffd76a' : '#ffffff1e';
-      ctx.stroke();
-    }
-    // 판매 존
+  function drawSellZone(view) {
     var hot = view.dropZone && view.dropZone.type === 'sell';
-    roundRect(SELL_X - 20, BENCH_Y - 20, 40, 40, 6);
+    ctx.save();
+    roundRect(SELL_X - 21, SELL_Y - 21, 42, 42, 8);
     ctx.fillStyle = hot ? '#b1832f55' : '#e0565511';
     ctx.fill();
     ctx.lineWidth = hot ? 2 : 1;
-    ctx.strokeStyle = hot ? '#ffd76a' : '#e0565566';
+    ctx.strokeStyle = hot ? '#ffd76a' : '#e0565666';
     ctx.stroke();
-    ctx.font = '18px "Segoe UI Emoji", serif';
+    ctx.font = '19px "Segoe UI Emoji", serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('💰', SELL_X, BENCH_Y + 1);
-    // 벤치 유닛
-    view.bench.forEach(function (b) {
-      if (view.drag && view.drag.uid === b.uid) return;
-      drawUnitSprite(benchX(b.slot), BENCH_Y, b.unitId, b.star,
-        { size: 36, hint: !battle && view.hints.has('u' + b.uid), time: view.time });
-    });
+    ctx.fillText('💰', SELL_X, SELL_Y + 1);
     ctx.restore();
   }
 
@@ -442,7 +423,7 @@
       });
     }
 
-    drawBenchRow(view);
+    if (view.mode !== 'battle') drawSellZone(view);
 
     // 드래그 중 유닛
     if (view.drag) {
@@ -469,16 +450,11 @@
     return null;
   }
 
-  // 포인터 위치 → 상호작용 존 (보드 칸 / 벤치 슬롯 / 판매)
+  // 포인터 위치 → 상호작용 존 (보드 칸 / 판매)
   function zoneAt(x, y) {
+    if (Math.abs(x - SELL_X) <= 24 && Math.abs(y - SELL_Y) <= 24) return { type: 'sell' };
     var cell = cellAt(x, y);
     if (cell) return { type: 'cell', col: cell.col, row: cell.row };
-    if (Math.abs(y - BENCH_Y) <= 24) {
-      if (Math.abs(x - SELL_X) <= 24) return { type: 'sell' };
-      for (var i = 0; i < 8; i++) {
-        if (Math.abs(x - benchX(i)) <= 22) return { type: 'bench', slot: i };
-      }
-    }
     return null;
   }
 

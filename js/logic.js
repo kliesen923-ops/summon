@@ -19,12 +19,10 @@
     };
   }
 
-  // ---- 파워 사다리 (기준표 §1) ----
-  // 머지 단계 n = T1: star-1 (0~2) / T2: 2+star (3~4) / T3: 5 (성급 없음)
+  // ---- 파워 사다리 ----
+  // 성급 통일 (v0.8): 머지 단계 n = (티어-1)×3 + (성급-1), T1★1=0 ~ T3★3=8
   function mergeSteps(tier, star) {
-    if (tier === 1) return star - 1;
-    if (tier === 2) return 2 + star;
-    return 5;
+    return (tier - 1) * 3 + (star - 1);
   }
   function ladderMult(n) { return Math.pow(1.5, n); }
   function roundHp(v) { return Math.round(v / 5) * 5; }
@@ -54,14 +52,14 @@
     if (aId === bId && aStar === bStar && aStar < D.STAR_CAP[a.tier]) {
       return { type: 'star', unitId: aId, star: aStar + 1 };
     }
-    // 규칙 2: 같은 티어 최대 성급 둘 → 클래스 쌍으로 상위 티어 진화 (T1→T2, T2→T3)
+    // 규칙 2: 같은 티어 ★3 둘 → 클래스 쌍으로 상위 티어 ★1 진화 (T1→T2→T3, 성급 통일)
     var aMax = aStar === D.STAR_CAP[a.tier];
     var bMax = bStar === D.STAR_CAP[b.tier];
     if (aMax && bMax && a.tier === b.tier && D.EVOLUTION[a.tier + 1]) {
       var key = [a.cls, b.cls].sort().join('+');
       return { type: 'evolve', unitId: D.EVOLUTION[a.tier + 1][key] };
     }
-    return null; // T3 쌍(→T4)은 미구현: 무반응
+    return null; // T3★3 쌍(→T4)은 미구현: 무반응
   }
 
   // ---- 상점 (설계 §5, v0.5~v0.7) ----
