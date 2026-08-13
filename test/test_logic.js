@@ -2,9 +2,9 @@
  * 프로젝트 서몬 프로토타입 — Node 스모크 테스트
  * 실행: node test/test_logic.js
  *  1) 스탯 사다리 = 기준표 v0.1 조견표 대조
- *  2) 머지/진화 규칙 전수 검사
- *  3) 드래프트 티어 스케일링
- *  4) 그리디 봇 헤드리스 클리어 시뮬 (난이도 곡선)
+ *  2) 머지/진화 규칙 전수 검사 + 판매가
+ *  3) 상점 롤 (티어 스케일링·가격·랜덤 카드)
+ *  4) 그리디 봇 헤드리스 클리어 시뮬 (상점·골드 경제, 난이도 곡선)
  * ========================================================= */
 'use strict';
 require('../js/data.js');
@@ -80,47 +80,61 @@ eq('판매가 T1★3', L.sellValue('knight', 3), 4);
 eq('판매가 T2★1', L.sellValue('grandknight', 1), 8);
 eq('판매가 T2★2', L.sellValue('grandknight', 2), 16);
 
-// ---- 3) 드래프트 스케일링 ----
+// ---- 3) 상점 롤 + 이자 ----
 (function () {
-  var rng = L.makeRng(42), t2w1 = 0, t2w5 = 0, N = 3000;
-  for (var i = 0; i < N; i++) {
-    L.draftCards(1, rng).forEach(function (c) { if (D.UNITS[c].tier === 2) t2w1++; });
-    L.draftCards(5, rng).forEach(function (c) { if (D.UNITS[c].tier === 2) t2w5++; });
+  var rng = L.makeRng(42), t2early = 0, t2late = 0, N = 2000;
+  function isT2Slot(s) {
+    return s.kind === 'randT2' || (s.kind === 'unit' && D.UNITS[s.unitId].tier === 2);
   }
-  ok('웨이브1 T2 없음', t2w1 === 0);
-  var rate = t2w5 / (N * 3);
-  ok('웨이브5 T2 ≈ 40% (실측 ' + (rate * 100).toFixed(1) + '%)', rate > 0.36 && rate < 0.44);
+  for (var i = 0; i < N; i++) {
+    L.rollShop(2, rng).forEach(function (s) { if (isT2Slot(s)) t2early++; });
+    L.rollShop(9, rng).forEach(function (s) { if (isT2Slot(s)) t2late++; });
+  }
+  ok('웨이브2 T2 슬롯 없음', t2early === 0);
+  var rate = t2late / (N * 4);
+  ok('웨이브9 T2 슬롯 ≈ 40% (실측 ' + (rate * 100).toFixed(1) + '%)', rate > 0.36 && rate < 0.44);
+  // 가격 매핑 검증
+  var rng2 = L.makeRng(7), priceOk = true;
+  for (var j = 0; j < 500; j++) {
+    L.rollShop(9, rng2).forEach(function (s) {
+      var want = s.kind === 'unit'
+        ? (D.UNITS[s.unitId].tier === 2 ? D.SHOP.priceT2 : D.SHOP.priceT1)
+        : (s.kind === 'randT2' ? D.SHOP.priceRandT2 : D.SHOP.priceRandT1);
+      if (s.price !== want) priceOk = false;
+    });
+  }
+  ok('슬롯 가격 매핑 (확정3/9G·랜덤2/7G)', priceOk);
+  ok('랜덤T1 < 확정T1 가격', D.SHOP.priceRandT1 < D.SHOP.priceT1);
+  ok('랜덤T2 < 확정T2 가격', D.SHOP.priceRandT2 < D.SHOP.priceT2);
+  // 랜덤 카드 해석 티어 검증
+  var rng3 = L.makeRng(9), tierOk = true;
+  for (var k = 0; k < 200; k++) {
+    if (D.UNITS[L.resolveShopUnit({ kind: 'randT1' }, rng3)].tier !== 1) tierOk = false;
+    if (D.UNITS[L.resolveShopUnit({ kind: 'randT2' }, rng3)].tier !== 2) tierOk = false;
+  }
+  ok('랜덤 카드 티어 해석', tierOk);
+  // 이자 (10G당 +1, 상한 +5)
+  eq('이자 0G', L.interestFor(0), 0);
+  eq('이자 9G', L.interestFor(9), 0);
+  eq('이자 10G', L.interestFor(10), 1);
+  eq('이자 47G', L.interestFor(47), 4);
+  eq('이자 상한(100G)', L.interestFor(100), 5);
 }());
 
-// ---- 4) 그리디 봇 헤드리스 시뮬 ----
+// ---- 4) 그리디 봇 헤드리스 시뮬 (상점·골드 경제) ----
 function frontArch(arch) { return arch === 'tank' || arch === 'melee' || arch === 'assassin'; }
 
-function placeUnit(board, unitId) {
-  var arch = D.UNITS[unitId].arch;
-  var prefRow = frontArch(arch) ? 0 : 1;
-  var rows = [prefRow, 1 - prefRow];
-  for (var r = 0; r < 2; r++) for (var c = 0; c < 4; c++) {
-    var row = rows[r];
-    if (!board.some(function (u) { return u.row === row && u.col === c; })) {
-      board.push({ unitId: unitId, star: 1, col: c, row: row });
-      return true;
-    }
-  }
-  return false;
-}
-
-function tryMerges(board) {
+function tryMergesArmy(army) {
   var moved = true;
   while (moved) {
     moved = false;
     outer:
-    for (var i = 0; i < board.length; i++) for (var j = i + 1; j < board.length; j++) {
-      var a = board[i], b = board[j];
-      var r = L.mergeResult(a.unitId, a.star, b.unitId, b.star);
+    for (var i = 0; i < army.length; i++) for (var j = i + 1; j < army.length; j++) {
+      var r = L.mergeResult(army[i].unitId, army[i].star, army[j].unitId, army[j].star);
       if (r) {
-        a.unitId = r.unitId;
-        a.star = r.type === 'star' ? r.star : 1;
-        board.splice(j, 1);
+        army[i].unitId = r.unitId;
+        army[i].star = r.type === 'star' ? r.star : 1;
+        army.splice(j, 1);
         moved = true;
         break outer;
       }
@@ -128,53 +142,85 @@ function tryMerges(board) {
   }
 }
 
-function draftPick(board, cards) {
-  // 1순위: 기존 ★1 동일 유닛과 즉시 머지 가능한 카드
-  for (var i = 0; i < cards.length; i++) {
-    if (board.some(function (u) { return u.unitId === cards[i] && u.star === 1; })) return cards[i];
-  }
-  return board.length < 8 ? cards[0] : null; // 만석이면 스킵
-}
-
-function runStage(chIdx, stIdx, seed) {
-  var rng = L.makeRng(seed);
-  var board = [];
-  function draft(wave) {
-    var boardIds = board.map(function (u) { return u.unitId; });
-    var pick = draftPick(board, L.draftCards(wave, rng, boardIds));
-    if (pick) { placeUnit(board, pick); tryMerges(board); }
-  }
-  draft(1); draft(1); // 런 시작 2회
-  for (var w = 1; w <= D.WAVES_PER_STAGE; w++) {
-    var st = B.createBattle(board, L.makeWave(chIdx, stIdx, w, rng), Math.floor(rng() * 1e9));
-    var res = 'ongoing';
-    while (res === 'ongoing') res = B.step(st, 1 / 30);
-    if (res === 'lose') return { win: false, wave: w };
-    if (w < D.WAVES_PER_STAGE) draft(w + 1);
-  }
-  return { win: true, wave: D.WAVES_PER_STAGE };
-}
-
-console.log('\n--- 그리디 봇 클리어 시뮬 (스테이지당 40시드) ---');
-var N = 40;
-var rates = [];
-for (var ch = 0; ch < 2; ch++) {
-  for (var stg = 0; stg < 3; stg++) {
-    var wins = 0, waveSum = 0;
-    for (var s = 0; s < N; s++) {
-      var r = runStage(ch, stg, 1000 + ch * 100 + stg * 10 + s);
-      if (r.win) wins++;
-      waveSum += r.wave;
+function makeRoster(army) {
+  // 강한 순 8체 출전, 근접 앞줄 배치
+  var roster = army.slice().sort(function (a, b) {
+    return L.sellValue(b.unitId, b.star) - L.sellValue(a.unitId, a.star);
+  }).slice(0, 8).map(function (u) { return { unitId: u.unitId, star: u.star, col: 0, row: 0 }; });
+  var taken = {};
+  roster.forEach(function (u) {
+    var pref = frontArch(D.UNITS[u.unitId].arch) ? 0 : 1;
+    var rows = [pref, 1 - pref], done = false;
+    for (var ri = 0; ri < 2 && !done; ri++) for (var c = 0; c < 4; c++) {
+      var key = rows[ri] + ',' + c;
+      if (!taken[key]) { taken[key] = 1; u.row = rows[ri]; u.col = c; done = true; break; }
     }
-    var rate = wins / N;
-    rates.push(rate);
-    console.log('챕터' + (ch + 1) + '-' + (stg + 1) + ' : 승률 ' + (rate * 100).toFixed(0) +
-      '% / 평균 도달 웨이브 ' + (waveSum / N).toFixed(1));
-  }
+  });
+  return roster;
 }
-ok('챕터1-1 봇 승률 85% 이상 (실측 ' + (rates[0] * 100).toFixed(0) + '%)', rates[0] >= 0.85);
-ok('난이도 단조 상승(챕터1-1 > 챕터2-3)', rates[0] > rates[5]);
-ok('챕터2-3 봇에게 고난도 (승률 60% 미만, 실측 ' + (rates[5] * 100).toFixed(0) + '%)', rates[5] < 0.6);
+
+function runChapter(chIdx, seed) {
+  var rng = L.makeRng(seed);
+  var army = [];                       // 보드+벤치 통합 풀 (상한 16)
+  var gold = D.SHOP.startBonus;
+  var lives = D.LIVES;
+  var w = 1;
+  while (w <= D.WAVES_PER_CHAPTER) {
+    gold += D.SHOP.income + L.interestFor(gold);
+    var shop = L.rollShop(w, rng);
+    var bought = true;
+    while (bought) {
+      bought = false;
+      for (var i = 0; i < shop.length; i++) {
+        var s = shop[i];
+        if (s.sold || s.price > gold) continue;
+        var mergeable = s.kind === 'unit' && army.some(function (u) {
+          return !!L.mergeResult(u.unitId, u.star, s.unitId, 1);
+        });
+        if (army.length >= 16 && !mergeable) continue;
+        gold -= s.price;
+        s.sold = true;
+        army.push({ unitId: L.resolveShopUnit(s, rng), star: 1 });
+        tryMergesArmy(army);
+        bought = true;
+      }
+    }
+    var res = 'lose';
+    if (army.length) {
+      var st = B.createBattle(makeRoster(army), L.makeWave(chIdx, w, rng), Math.floor(rng() * 1e9));
+      res = 'ongoing';
+      while (res === 'ongoing') res = B.step(st, 1 / 30);
+    }
+    if (res === 'lose') {
+      lives--;
+      if (lives <= 0) return { win: false, wave: w, stars: 0 };
+      // 같은 웨이브 재도전 (수입은 다음 루프에서 재지급)
+    } else {
+      w++;
+    }
+  }
+  return { win: true, wave: D.WAVES_PER_CHAPTER, stars: lives };
+}
+
+console.log('\n--- 그리디 봇 클리어 시뮬 (챕터당 25시드, 목숨 3) ---');
+var N = 25;
+var rates = [];
+for (var ch = 0; ch < D.CHAPTERS.length; ch++) {
+  var wins = 0, waveSum = 0, starSum = 0;
+  for (var s = 0; s < N; s++) {
+    var r = runChapter(ch, 1000 + ch * 100 + s);
+    if (r.win) { wins++; starSum += r.stars; }
+    waveSum += r.wave;
+  }
+  var rate = wins / N;
+  rates.push(rate);
+  console.log('챕터' + (ch + 1) + ' : 승률 ' + (rate * 100).toFixed(0) +
+    '% / 평균 도달 웨이브 ' + (waveSum / N).toFixed(1) +
+    (wins ? ' / 평균 별 ' + (starSum / wins).toFixed(1) : ''));
+}
+ok('챕터1 봇 승률 85% 이상 (실측 ' + (rates[0] * 100).toFixed(0) + '%)', rates[0] >= 0.85);
+ok('난이도 하강 곡선 (챕터1 > 챕터9)', rates[0] > rates[8]);
+ok('챕터9 봇에게 고난도 (승률 40% 이하, 실측 ' + (rates[8] * 100).toFixed(0) + '%)', rates[8] <= 0.4);
 
 console.log(fails === 0 ? '\nALL PASS' : '\n' + fails + ' FAILURES');
 process.exit(fails === 0 ? 0 : 1);

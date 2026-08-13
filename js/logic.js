@@ -62,36 +62,54 @@
     return null; // T2 최대 성급 쌍(→T3)은 미구현: 무반응
   }
 
-  // ---- 드래프트 풀 (설계 §5) ----
+  // ---- 상점 (설계 §5, v0.5) ----
   var T1_IDS = [], T2_IDS = [];
   Object.keys(D.UNITS).forEach(function (id) {
     (D.UNITS[id].tier === 1 ? T1_IDS : T2_IDS).push(id);
   });
-  // boardIds: 현재 보드 유닛 id 배열 — 보유 유닛 재등장 바이어스(dupBias)로 머지 성립 확률 유지
-  function draftCards(wave, rng, boardIds) {
-    var cards = [];
-    var p2 = D.DRAFT.t2Chance(wave);
-    for (var i = 0; i < 3; i++) {
-      var wantT2 = rng() < p2;
-      var pool = wantT2 ? T2_IDS : T1_IDS;
-      var card = null;
-      if (boardIds && boardIds.length && rng() < D.DRAFT.dupBias) {
-        var owned = boardIds.filter(function (id) {
-          return D.UNITS[id].tier === (wantT2 ? 2 : 1);
+
+  // 4슬롯 생성. 슬롯 = {kind:'unit'|'randT1'|'randT2', unitId?, price, sold}
+  // 확정 카드도 완전 랜덤 (v0.6 — 보유 유닛 재등장 바이어스 폐지)
+  function rollShop(wave, rng) {
+    var slots = [];
+    var p2 = D.SHOP.t2Chance(wave);
+    for (var i = 0; i < D.SHOP.slots; i++) {
+      var isT2 = rng() < p2;
+      if (rng() < D.SHOP.randChance) {
+        slots.push({
+          kind: isT2 ? 'randT2' : 'randT1',
+          price: isT2 ? D.SHOP.priceRandT2 : D.SHOP.priceRandT1,
+          sold: false
         });
-        if (owned.length) card = owned[Math.floor(rng() * owned.length)];
+      } else {
+        var pool = isT2 ? T2_IDS : T1_IDS;
+        slots.push({
+          kind: 'unit', unitId: pool[Math.floor(rng() * pool.length)],
+          price: isT2 ? D.SHOP.priceT2 : D.SHOP.priceT1,
+          sold: false
+        });
       }
-      if (!card) card = pool[Math.floor(rng() * pool.length)];
-      cards.push(card);
     }
-    return cards;
+    return slots;
+  }
+
+  // TFT식 이자: 보유 골드 interestPer당 +1G, 상한 interestCap
+  function interestFor(gold) {
+    return Math.min(D.SHOP.interestCap, Math.floor(gold / D.SHOP.interestPer));
+  }
+
+  // 구매 시점에 유닛 확정 (랜덤 카드는 여기서 추첨)
+  function resolveShopUnit(slot, rng) {
+    if (slot.kind === 'unit') return slot.unitId;
+    var pool = slot.kind === 'randT1' ? T1_IDS : T2_IDS;
+    return pool[Math.floor(rng() * pool.length)];
   }
 
   // ---- 적 웨이브 생성 (설계 §6) ----
   // 반환: [{hp, atk, as, speed, r, color, isBoss}]
-  function makeWave(chapterIdx, stageIdx, wave, rng) {
+  function makeWave(chapterIdx, wave, rng) {
     var ch = D.CHAPTERS[chapterIdx];
-    var mult = ch.stageMult[stageIdx];
+    var mult = ch.mult;
     var hpBudget = D.ENEMY.HP_BASE * Math.pow(D.ENEMY.HP_GROWTH, wave - 1) * mult;
     var dpsBudget = D.ENEMY.DPS_BASE * Math.pow(D.ENEMY.DPS_GROWTH, wave - 1) * Math.sqrt(mult);
     var look = D.ENEMY_LOOK[ch.enemyType];
@@ -109,7 +127,7 @@
       });
     }
 
-    if (wave === D.BOSS_WAVE) {
+    if (wave % D.BOSS_EVERY === 0) {
       var bossLook = D.ENEMY_LOOK.boss;
       push(hpBudget * D.ENEMY.BOSS_HP_MULT, dpsBudget * 0.6, bossLook, true);
       for (var i = 0; i < D.ENEMY.BOSS_MINIONS; i++) {
@@ -140,7 +158,9 @@
     ladderMult: ladderMult,
     statsFor: statsFor,
     mergeResult: mergeResult,
-    draftCards: draftCards,
+    rollShop: rollShop,
+    resolveShopUnit: resolveShopUnit,
+    interestFor: interestFor,
     makeWave: makeWave,
     T1_IDS: T1_IDS,
     T2_IDS: T2_IDS

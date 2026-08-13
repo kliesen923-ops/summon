@@ -126,23 +126,34 @@
     as: 1.0, range: 1, move: 72, r: 10
   };
 
-  // ---- 드래프트 (설계 §5) ----
-  var DRAFT = {
-    startPicks: 2,
-    dupBias: 0.45,               // 보유 유닛 재등장 확률 (7클래스 확장 후 머지 성립 보정)
-    t2Chance: function (wave) {
-      if (wave <= 2) return 0;
-      if (wave <= 4) return 0.25;
+  // ---- 상점 (설계 §5, v0.5 TFT식 개편) ----
+  var SHOP = {
+    slots: 4,                    // 상시 4슬롯 — 구매해도 유지, 리롤로만 전체 교체
+    priceT1: 3,                  // 확정 T1
+    priceRandT1: 2,              // 랜덤 T1 (확정보다 저렴)
+    priceT2: 9,                  // 확정 T2 (판매가 8G보다 비싸게 — 되팔이 차단)
+    priceRandT2: 7,              // 랜덤 T2
+    reroll: 2,
+    income: 4,                   // 웨이브 시작 기본 지급
+    startBonus: 4,               // 런 시작 추가 지급 (1웨이브 총 8G)
+    randChance: 0.25,            // 슬롯이 랜덤 카드일 확률
+    prepTime: 30,                // 준비 제한시간(초) — 초과 시 자동 전투 시작
+    interestPer: 10,             // 이자: 보유 10G당 +1G (TFT식)
+    interestCap: 5,              // 이자 상한 +5G
+    t2Chance: function (wave) {  // 웨이브별 T2 슬롯 확률 (12웨이브 기준)
+      if (wave <= 3) return 0;
+      if (wave <= 7) return 0.25;
       return 0.40;
     }
   };
 
   // ---- 적 스케일링 (설계 §6, 기준표 §7 예산 공식) ----
+  // 12웨이브 체제: 웨이브 성장률을 완만화하고 챕터 배율로 장기 곡선 형성
   var ENEMY = {
     HP_BASE: 260,
-    HP_GROWTH: 1.32,
+    HP_GROWTH: 1.22,
     DPS_BASE: 11,
-    DPS_GROWTH: 1.22,
+    DPS_GROWTH: 1.15,
     AS: 0.8,
     MELEE_RANGE: 42,
     BOSS_HP_MULT: 1.6,
@@ -150,23 +161,29 @@
     TIMEOUT: 120
   };
 
-  // ---- 챕터 정의: 2챕터 × 3스테이지, 스테이지당 6웨이브(6 = 보스) ----
-  var CHAPTERS = [
-    {
-      id: 1, name: '초원의 침공', enemyType: 'swarm',
-      desc: '물량형 — 다수의 약한 적이 밀려온다',
-      stageMult: [1.0, 1.3, 1.7],
-      countFor: function (wave) { return 5 + wave; }
-    },
-    {
-      id: 2, name: '강철 요새', enemyType: 'elite',
-      desc: '단단한 소수 — 정예가 천천히 전진한다',
-      stageMult: [2.2, 2.9, 3.7],
-      countFor: function (wave) { return 3 + Math.ceil(wave / 2); }
-    }
+  // ---- 챕터 정의: 9챕터 × 12웨이브, 4웨이브마다 보스 (4·8·12) ----
+  // 난이도 = CHAPTER_MULT_GROWTH^(챕터-1) 기하 곡선. 물량형/정예형 교대.
+  var CHAPTER_MULT_GROWTH = 1.28;
+  var CHAPTER_NAMES = [
+    '초원의 침공', '강철 요새', '어둠의 숲',
+    '사막의 유적', '얼어붙은 협곡', '화산 지대',
+    '폐허의 도시', '심연의 관문', '근원의 옥좌'
   ];
-  var WAVES_PER_STAGE = 6;
-  var BOSS_WAVE = 6;
+  var CHAPTERS = CHAPTER_NAMES.map(function (name, i) {
+    var swarm = i % 2 === 0;
+    return {
+      id: i + 1, name: name,
+      enemyType: swarm ? 'swarm' : 'elite',
+      desc: swarm ? '물량형 — 다수의 약한 적이 밀려온다' : '정예형 — 단단한 소수가 전진한다',
+      mult: Math.pow(CHAPTER_MULT_GROWTH, i),
+      countFor: swarm
+        ? function (wave) { return Math.min(5 + wave, 14); }
+        : function (wave) { return 3 + Math.ceil(wave / 2); }
+    };
+  });
+  var WAVES_PER_CHAPTER = 12;
+  var BOSS_EVERY = 4;   // 4·8·12웨이브 = 보스
+  var LIVES = 3;        // 챕터당 목숨 — 전멸 시 1 소멸, 남은 목숨 = 클리어 별점
 
   var ENEMY_LOOK = {
     swarm: { color: '#7aa05a', r: 13, speed: 42 },
@@ -178,7 +195,8 @@
     GEOM: GEOM, ARCHETYPES: ARCHETYPES, CLASSES: CLASSES, UNITS: UNITS,
     EVOLUTION: EVOLUTION, STAR_CAP: STAR_CAP, SKILLS: SKILLS, SKILL_VALS: SKILL_VALS,
     EXECUTE: EXECUTE, SUMMON: SUMMON,
-    DRAFT: DRAFT, ENEMY: ENEMY, CHAPTERS: CHAPTERS,
-    WAVES_PER_STAGE: WAVES_PER_STAGE, BOSS_WAVE: BOSS_WAVE, ENEMY_LOOK: ENEMY_LOOK
+    SHOP: SHOP, ENEMY: ENEMY, CHAPTERS: CHAPTERS,
+    WAVES_PER_CHAPTER: WAVES_PER_CHAPTER, BOSS_EVERY: BOSS_EVERY, LIVES: LIVES,
+    ENEMY_LOOK: ENEMY_LOOK
   };
 }(typeof window !== 'undefined' ? window : globalThis));

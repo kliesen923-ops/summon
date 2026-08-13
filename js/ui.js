@@ -22,34 +22,27 @@
     });
   }
 
-  // ---- 메인 화면 구성 ----
-  function buildMain(progress, onStage, onReset) {
+  // ---- 메인 화면: 챕터 1~9 세로 목록 + 별점 ----
+  function starStr(n) {
+    var s = '';
+    for (var i = 0; i < 3; i++) s += i < n ? '⭐' : '☆';
+    return s;
+  }
+  function buildMain(progress, onChapter, onReset) {
     var root = document.getElementById('screen-main');
-    root.innerHTML = '<h1>프로젝트 서몬</h1><div class="sub">덱빌딩 머지 디펜스 — 프로토타입 v0.1</div>';
+    root.innerHTML = '<h1>프로젝트 서몬</h1><div class="sub">덱빌딩 머지 디펜스 — 프로토타입</div>';
     D.CHAPTERS.forEach(function (ch, ci) {
-      var chapterUnlocked = ci === 0 || progress.cleared.indexOf('1-3') >= 0;
-      var div = document.createElement('div');
-      div.className = 'chapter' + (chapterUnlocked ? '' : ' locked');
-      div.innerHTML = '<h2>' + ch.id + '장. ' + ch.name + '</h2><div class="desc">' + ch.desc + '</div>';
-      var stages = document.createElement('div');
-      stages.className = 'stages';
-      for (var si = 0; si < 3; si++) {
-        (function (si) {
-          var key = ch.id + '-' + (si + 1);
-          var cleared = progress.cleared.indexOf(key) >= 0;
-          var prevKey = ch.id + '-' + si;
-          var unlocked = chapterUnlocked && (si === 0 || progress.cleared.indexOf(prevKey) >= 0);
-          var btn = document.createElement('button');
-          btn.className = 'stage-btn';
-          btn.disabled = !unlocked;
-          btn.innerHTML = '<span>' + (unlocked ? '스테이지 ' + (si + 1) : '🔒') + '</span>' +
-            '<span class="star">' + (cleared ? '⭐' : (unlocked ? '▶' : '')) + '</span>';
-          btn.onclick = function () { onStage(ci, si); };
-          stages.appendChild(btn);
-        }(si));
-      }
-      div.appendChild(stages);
-      root.appendChild(div);
+      var stars = progress.stars[ch.id] || 0;
+      var unlocked = ci === 0 || (progress.stars[ch.id - 1] || 0) >= 1;
+      var btn = document.createElement('button');
+      btn.className = 'ch-row';
+      btn.disabled = !unlocked;
+      btn.innerHTML =
+        '<span class="ch-info"><h2>' + (unlocked ? '' : '🔒 ') + '챕터 ' + ch.id + ' · ' + ch.name + '</h2>' +
+        '<span class="desc">' + ch.desc + '</span></span>' +
+        '<span class="ch-stars">' + (unlocked ? starStr(stars) : '') + '</span>';
+      btn.onclick = function () { onChapter(ci); };
+      root.appendChild(btn);
     });
     var reset = document.createElement('button');
     reset.id = 'reset-save';
@@ -65,36 +58,68 @@
     document.getElementById('tb-wave').textContent = waveLabel;
   }
   function setGold(g) { document.getElementById('tb-gold').textContent = '💰 ' + g; }
-  function showDraft(cards, canTake, onPick) {
+  function setLives(n) {
+    var s = '';
+    for (var i = 0; i < D.LIVES; i++) s += i < n ? '❤️' : '🖤';
+    document.getElementById('tb-lives').textContent = s;
+  }
+  // ---- 상점 4슬롯 렌더 (v0.5) ----
+  function showShop(slots, canBuy, onBuy) {
     var row = document.getElementById('draft-cards');
     row.innerHTML = '';
-    cards.forEach(function (cid) {
-      var u = D.UNITS[cid], cl = D.CLASSES[u.cls];
+    slots.forEach(function (slot, i) {
       var el = document.createElement('div');
-      var takable = canTake(cid);
-      el.className = 'card' + (takable ? '' : ' off');
-      el.innerHTML = '<div class="em">' + u.emoji + '</div>' +
-        '<div class="nm">' + u.name + '</div>' +
-        '<div class="cl' + (u.tier === 2 ? ' tier2' : '') + '">' +
-        cl.icon + ' ' + cl.name + (u.tier === 2 ? ' · T2' : '') + '</div>';
-      if (takable) el.onclick = function () { onPick(cid); };
+      if (slot.sold) {
+        el.className = 'card sold';
+        el.innerHTML = '<div class="em">✔</div>';
+        row.appendChild(el);
+        return;
+      }
+      var buyable = canBuy(slot);
+      var body;
+      if (slot.kind === 'unit') {
+        var u = D.UNITS[slot.unitId], cl = D.CLASSES[u.cls];
+        body = '<div class="em">' + u.emoji + '</div>' +
+          '<div class="nm">' + u.name + '</div>' +
+          '<div class="cl' + (u.tier === 2 ? ' tier2' : '') + '">' +
+          cl.icon + ' ' + cl.name + (u.tier === 2 ? ' · T2' : '') + '</div>';
+        el.className = 'card' + (buyable ? '' : ' off');
+      } else {
+        var isT2 = slot.kind === 'randT2';
+        body = '<div class="em">❓</div>' +
+          '<div class="nm">랜덤 유닛</div>' +
+          '<div class="cl' + (isT2 ? ' tier2' : '') + '">' + (isT2 ? 'Tier 2' : 'Tier 1') + '</div>';
+        el.className = 'card rand' + (buyable ? '' : ' off');
+      }
+      el.innerHTML = body + '<div class="price">💰 ' + slot.price + 'G</div>';
+      if (buyable) el.onclick = function () { onBuy(i); };
       row.appendChild(el);
     });
   }
-  function clearDraft() { document.getElementById('draft-cards').innerHTML = ''; }
-  function setButtons(showStart, showSkip, showReroll) {
+  function clearShop() { document.getElementById('draft-cards').innerHTML = ''; }
+  function setButtons(showStart, showReroll, showLock) {
     document.getElementById('btn-start').classList.toggle('hidden', !showStart);
-    document.getElementById('btn-skip').classList.toggle('hidden', !showSkip);
     document.getElementById('btn-reroll').classList.toggle('hidden', !showReroll);
+    document.getElementById('btn-lock').classList.toggle('hidden', !showLock);
+  }
+  function setLock(locked) {
+    var b = document.getElementById('btn-lock');
+    b.textContent = locked ? '🔒' : '🔓';
+    b.classList.toggle('locked', locked);
+  }
+  function setStartLabel(sec) {
+    document.getElementById('btn-start').textContent =
+      sec === null ? '전투 시작' : '전투 시작 (' + sec + ')';
   }
 
-  function showResult(win, waveReached, stageLabel) {
+  function showResult(win, waveReached, label, stars) {
     showScreen('result');
     var t = document.getElementById('result-title');
-    t.textContent = win ? '스테이지 클리어!' : '패배...';
+    t.textContent = win ? starStr(stars) : '패배...';
     t.className = win ? 'win' : 'lose';
-    document.getElementById('result-sub').textContent =
-      stageLabel + (win ? ' — 모든 웨이브 방어 성공' : ' — 웨이브 ' + waveReached + '에서 전멸');
+    document.getElementById('result-sub').textContent = win
+      ? label + ' 클리어! — 남은 목숨 ' + stars + '개 = 별 ' + stars + '개'
+      : label + ' — 웨이브 ' + waveReached + '에서 목숨 소진';
   }
 
   // ---- Canvas 렌더링 ----
@@ -447,9 +472,10 @@
     initInput: initInput, render: render, fitApp: fitApp,
     drawUnitSprite: drawUnitSprite,
     showScreen: showScreen, buildMain: buildMain,
-    setPanelMsg: setPanelMsg, setTopbar: setTopbar, setGold: setGold,
-    showDraft: showDraft, clearDraft: clearDraft,
-    setButtons: setButtons, showResult: showResult,
+    setPanelMsg: setPanelMsg, setTopbar: setTopbar, setGold: setGold, setLives: setLives,
+    showShop: showShop, clearShop: clearShop,
+    setButtons: setButtons, setLock: setLock, setStartLabel: setStartLabel,
+    showResult: showResult,
     cellAt: cellAt
   };
 }(typeof window !== 'undefined' ? window : globalThis));

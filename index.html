@@ -22,18 +22,14 @@
     padding: 30px 24px; overflow-y: auto; }
   #screen-main h1 { color: #f0e6c8; font-size: 30px; text-align: center; margin: 18px 0 4px; }
   #screen-main .sub { color: #8b93a7; font-size: 13px; text-align: center; margin-bottom: 26px; }
-  .chapter { background: #262b3a; border: 1px solid #363d52; border-radius: 14px;
-    padding: 16px; margin-bottom: 18px; }
-  .chapter.locked { opacity: 0.45; }
-  .chapter h2 { color: #e8e2d0; font-size: 18px; margin-bottom: 2px; }
-  .chapter .desc { color: #8b93a7; font-size: 12px; margin-bottom: 12px; }
-  .stages { display: flex; gap: 10px; }
-  .stage-btn { flex: 1; height: 64px; border-radius: 10px; border: 1px solid #46506e;
-    background: #2f3650; color: #dfe4f2; font-size: 15px; cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
-  .stage-btn:not(:disabled):hover { background: #3b4466; }
-  .stage-btn:disabled { background: #23273400; border-color: #333a4e; color: #5b6376; cursor: default; }
-  .stage-btn .star { font-size: 14px; }
+  .ch-row { width: 100%; display: flex; align-items: center; justify-content: space-between;
+    background: #262b3a; border: 1px solid #363d52; border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 10px; cursor: pointer; text-align: left; }
+  .ch-row:not(:disabled):hover { background: #2f3650; border-color: #46506e; }
+  .ch-row:disabled { opacity: 0.4; cursor: default; }
+  .ch-row .ch-info h2 { color: #e8e2d0; font-size: 16px; margin-bottom: 2px; }
+  .ch-row .ch-info .desc { color: #8b93a7; font-size: 11px; }
+  .ch-row .ch-stars { font-size: 15px; letter-spacing: 1px; white-space: nowrap; }
   #reset-save { display: block; margin: 8px auto; background: none; border: none;
     color: #5b6376; font-size: 11px; cursor: pointer; text-decoration: underline; }
 
@@ -52,16 +48,19 @@
   #bottom-panel { position: absolute; left: 0; right: 0; bottom: 0; height: 208px;
     background: #232838; border-top: 2px solid #363d52; padding: 10px 12px; }
   #panel-msg { color: #cfd6e8; font-size: 13px; text-align: center; height: 20px; margin-bottom: 8px; }
-  #draft-cards { display: flex; gap: 10px; justify-content: center; }
-  .card { width: 112px; height: 118px; border-radius: 12px; border: 2px solid #46506e;
+  #draft-cards { display: flex; gap: 8px; justify-content: center; }
+  .card { width: 88px; height: 118px; border-radius: 12px; border: 2px solid #46506e;
     background: #2b3147; cursor: pointer; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 3px; transition: transform .08s; }
-  .card:not(.off):hover { transform: translateY(-4px); border-color: #d8b45a; }
+    align-items: center; justify-content: center; gap: 2px; transition: transform .08s; }
+  .card:not(.off):not(.sold):hover { transform: translateY(-4px); border-color: #d8b45a; }
   .card.off { opacity: 0.35; cursor: default; }
-  .card .em { font-size: 34px; line-height: 1; }
-  .card .nm { color: #e8e2d0; font-size: 13px; }
-  .card .cl { font-size: 11px; color: #8b93a7; }
+  .card.sold { opacity: 0.15; cursor: default; background: none; }
+  .card .em { font-size: 30px; line-height: 1; }
+  .card .nm { color: #e8e2d0; font-size: 12px; }
+  .card .cl { font-size: 10px; color: #8b93a7; }
   .card .tier2 { color: #d8b45a; }
+  .card .price { font-size: 12px; font-weight: bold; color: #ffd76a; margin-top: 2px; }
+  .card.rand { border-style: dashed; }
   #panel-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
   .pbtn { min-width: 130px; height: 42px; border-radius: 10px; border: 1px solid #46506e;
     font-size: 15px; cursor: pointer; background: #2f3650; color: #dfe4f2; }
@@ -69,6 +68,8 @@
   .pbtn.primary:hover { background: #c9973c; }
   .pbtn.ghost { background: none; color: #8b93a7; }
   .pbtn:disabled { opacity: 0.35; cursor: default; }
+  #btn-lock { min-width: 52px; font-size: 18px; }
+  #btn-lock.locked { background: #b1832f; border-color: #d8b45a; }
   .hidden { display: none !important; }
 
   /* ---- 결과 화면 ---- */
@@ -91,6 +92,7 @@
       <div id="topbar">
         <span class="label" id="tb-stage"></span>
         <span class="label" id="tb-wave"></span>
+        <span class="label" id="tb-lives"></span>
         <span class="label" id="tb-gold">💰 0</span>
         <button id="btn-exit">나가기</button>
       </div>
@@ -99,8 +101,8 @@
         <div id="draft-cards"></div>
         <div id="panel-buttons">
           <button id="btn-start" class="pbtn primary hidden">전투 시작</button>
-          <button id="btn-reroll" class="pbtn hidden">리롤 (2G)</button>
-          <button id="btn-skip" class="pbtn ghost hidden">건너뛰기</button>
+          <button id="btn-reroll" class="pbtn hidden">🎲 리롤 2G</button>
+          <button id="btn-lock" class="pbtn ghost hidden">🔓</button>
         </div>
       </div>
     </div>
