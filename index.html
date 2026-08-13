@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>프로젝트 서몬 (프로토타입)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #14161c; overflow: hidden;
+    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    -webkit-user-select: none; user-select: none; }
+  #stage-wrap { position: absolute; inset: 0; display: flex;
+    align-items: center; justify-content: center; }
+  #app { position: relative; width: 405px; height: 720px; background: #1c1f28;
+    border-radius: 12px; overflow: hidden; box-shadow: 0 0 40px #000a;
+    transform-origin: center center; }
+  .screen { position: absolute; inset: 0; display: none; }
+  .screen.on { display: block; }
+
+  /* ---- 메인 화면 ---- */
+  #screen-main { background: linear-gradient(180deg, #232838 0%, #1a1d27 100%);
+    padding: 30px 24px; overflow-y: auto; }
+  #screen-main h1 { color: #f0e6c8; font-size: 30px; text-align: center; margin: 18px 0 4px; }
+  #screen-main .sub { color: #8b93a7; font-size: 13px; text-align: center; margin-bottom: 26px; }
+  .chapter { background: #262b3a; border: 1px solid #363d52; border-radius: 14px;
+    padding: 16px; margin-bottom: 18px; }
+  .chapter.locked { opacity: 0.45; }
+  .chapter h2 { color: #e8e2d0; font-size: 18px; margin-bottom: 2px; }
+  .chapter .desc { color: #8b93a7; font-size: 12px; margin-bottom: 12px; }
+  .stages { display: flex; gap: 10px; }
+  .stage-btn { flex: 1; height: 64px; border-radius: 10px; border: 1px solid #46506e;
+    background: #2f3650; color: #dfe4f2; font-size: 15px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .stage-btn:not(:disabled):hover { background: #3b4466; }
+  .stage-btn:disabled { background: #23273400; border-color: #333a4e; color: #5b6376; cursor: default; }
+  .stage-btn .star { font-size: 14px; }
+  #reset-save { display: block; margin: 8px auto; background: none; border: none;
+    color: #5b6376; font-size: 11px; cursor: pointer; text-decoration: underline; }
+
+  /* ---- 게임 화면 ---- */
+  #screen-game { background: #1c1f28; }
+  #game-canvas { position: absolute; top: 0; left: 0; }
+  #topbar { position: absolute; top: 0; left: 0; right: 0; height: 34px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 10px; pointer-events: none; }
+  #topbar .label { color: #cfd6e8; font-size: 13px; text-shadow: 0 1px 3px #000; }
+  #btn-exit { pointer-events: auto; background: #2f3650cc; color: #aab2c8;
+    border: 1px solid #46506e; border-radius: 6px; font-size: 11px;
+    padding: 3px 8px; cursor: pointer; }
+
+  /* ---- 하단 패널 (드래프트 / 전투 상태) ---- */
+  #bottom-panel { position: absolute; left: 0; right: 0; bottom: 0; height: 208px;
+    background: #232838; border-top: 2px solid #363d52; padding: 10px 12px; }
+  #panel-msg { color: #cfd6e8; font-size: 13px; text-align: center; height: 20px; margin-bottom: 8px; }
+  #draft-cards { display: flex; gap: 10px; justify-content: center; }
+  .card { width: 112px; height: 118px; border-radius: 12px; border: 2px solid #46506e;
+    background: #2b3147; cursor: pointer; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 3px; transition: transform .08s; }
+  .card:not(.off):hover { transform: translateY(-4px); border-color: #d8b45a; }
+  .card.off { opacity: 0.35; cursor: default; }
+  .card .em { font-size: 34px; line-height: 1; }
+  .card .nm { color: #e8e2d0; font-size: 13px; }
+  .card .cl { font-size: 11px; color: #8b93a7; }
+  .card .tier2 { color: #d8b45a; }
+  #panel-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+  .pbtn { min-width: 130px; height: 42px; border-radius: 10px; border: 1px solid #46506e;
+    font-size: 15px; cursor: pointer; background: #2f3650; color: #dfe4f2; }
+  .pbtn.primary { background: #b1832f; border-color: #d8b45a; color: #fff8e6; font-weight: bold; }
+  .pbtn.primary:hover { background: #c9973c; }
+  .pbtn.ghost { background: none; color: #8b93a7; }
+  .pbtn:disabled { opacity: 0.35; cursor: default; }
+  .hidden { display: none !important; }
+
+  /* ---- 결과 화면 ---- */
+  #screen-result { background: #171a22ee; display: none; align-items: center;
+    justify-content: center; flex-direction: column; gap: 14px; text-align: center; }
+  #screen-result.on { display: flex; }
+  #result-title { font-size: 40px; }
+  #result-title.win { color: #ffd76a; }
+  #result-title.lose { color: #8b93a7; }
+  #result-sub { color: #cfd6e8; font-size: 15px; }
+</style>
+</head>
+<body>
+<div id="stage-wrap">
+  <div id="app">
+    <div id="screen-main" class="screen on"></div>
+
+    <div id="screen-game" class="screen">
+      <canvas id="game-canvas" width="405" height="720"></canvas>
+      <div id="topbar">
+        <span class="label" id="tb-stage"></span>
+        <span class="label" id="tb-wave"></span>
+        <span class="label" id="tb-gold">💰 0</span>
+        <button id="btn-exit">나가기</button>
+      </div>
+      <div id="bottom-panel">
+        <div id="panel-msg"></div>
+        <div id="draft-cards"></div>
+        <div id="panel-buttons">
+          <button id="btn-start" class="pbtn primary hidden">전투 시작</button>
+          <button id="btn-reroll" class="pbtn hidden">리롤 (2G)</button>
+          <button id="btn-skip" class="pbtn ghost hidden">건너뛰기</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-result" class="screen">
+      <div id="result-title"></div>
+      <div id="result-sub"></div>
+      <button id="btn-to-main" class="pbtn primary">메인으로</button>
+    </div>
+  </div>
+</div>
+<script src="js/data.js"></script>
+<script src="js/logic.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
