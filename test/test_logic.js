@@ -40,8 +40,18 @@ ok('호크아이 사거리 오버라이드 8칸', L.statsFor('hawkeye', 1).range
 ok('아발리스트 사거리 4칸', L.statsFor('arbalist', 1).range === 4);
 ok('클레릭 HPS 8', L.statsFor('cleric', 1).hps === 8);
 ok('비숍 HPS 27 (사다리 적용)', L.statsFor('bishop', 1).hps === 27);
-ok('유닛 총 35종', Object.keys(D.UNITS).length === 35);
-ok('진화표 28종', Object.keys(D.EVOLUTION).length === 28);
+// T3 = 머지 단계 5 (기준표 §4 T3 행)
+eq('센티넬(T3 탱킹)', hpatk('sentinel', 1), [1825, 76]);
+eq('워로드(T3 근접딜)', hpatk('warlord', 1), [1140, 114]);
+eq('스톰레인저(T3 원거리)', hpatk('stormranger', 1), [795, 114]);
+eq('아크메이지(T3 광역)', hpatk('archmage', 1), [685, 167]);
+eq('세인트(T3 지원힐)', hpatk('saint', 1), [1025, 61]);
+eq('팬텀(T3 암살)', hpatk('phantom', 1), [795, 99]);
+eq('스피릿로드(T3 소환)', hpatk('spiritlord', 1), [685, 68]);
+ok('세인트 HPS 61', L.statsFor('saint', 1).hps === 61);
+ok('유닛 총 63종 (7+28+28)', Object.keys(D.UNITS).length === 63);
+ok('진화표 T2 28종', Object.keys(D.EVOLUTION[2]).length === 28);
+ok('진화표 T3 28종', Object.keys(D.EVOLUTION[3]).length === 28);
 
 // ---- 2) 머지/진화 규칙 ----
 eq('동일 유닛 성급 상승', L.mergeResult('knight', 1, 'knight', 1), { type: 'star', unitId: 'knight', star: 2 });
@@ -49,8 +59,10 @@ eq('성급 다르면 무반응', L.mergeResult('knight', 1, 'knight', 2), null);
 eq('T1 상한 ★3에서 동일유닛 = 순혈 진화', L.mergeResult('knight', 3, 'knight', 3), { type: 'evolve', unitId: 'grandknight' });
 eq('비최대 이종 무반응', L.mergeResult('knight', 1, 'warrior', 1), null);
 eq('T2 성급 상승', L.mergeResult('gladiator', 1, 'gladiator', 1), { type: 'star', unitId: 'gladiator', star: 2 });
-eq('T2 최대성급 쌍 무반응(T3 미구현)', L.mergeResult('gladiator', 2, 'gladiator', 2), null);
+eq('T2★2 동일유닛 = T3 순혈 진화', L.mergeResult('gladiator', 2, 'gladiator', 2), { type: 'evolve', unitId: 'warlord' });
 eq('티어 혼합 최대성급 무반응', L.mergeResult('knight', 3, 'gladiator', 2), null);
+eq('T3 쌍 무반응(T4 미구현)', L.mergeResult('sentinel', 1, 'warlord', 1), null);
+eq('T3 동일유닛 무반응', L.mergeResult('sentinel', 1, 'sentinel', 1), null);
 // 클래스 쌍 → T2 전 28종 (매트릭스 v1.5 §2 전수)
 var pairs = {
   'knight+knight': 'grandknight', 'warrior+warrior': 'berserker', 'archer+archer': 'hawkeye',
@@ -73,46 +85,68 @@ Object.keys(pairs).forEach(function (k) {
   eq('진화(역순) ' + k, r2 && r2.unitId, pairs[k]);
 });
 
-// ---- 2.5) 판매가 (투자 매몰비 = 2^머지단계) ----
+// ---- 2.5) 판매가 (투자 매몰비 = 2^머지단계, 상한 16) ----
 eq('판매가 T1★1', L.sellValue('knight', 1), 1);
 eq('판매가 T1★2', L.sellValue('knight', 2), 2);
 eq('판매가 T1★3', L.sellValue('knight', 3), 4);
 eq('판매가 T2★1', L.sellValue('grandknight', 1), 8);
 eq('판매가 T2★2', L.sellValue('grandknight', 2), 16);
+eq('판매가 T3 상한 16 (구매가 18G 차익 차단)', L.sellValue('sentinel', 1), 16);
 
-// ---- 3) 상점 롤 + 이자 ----
+// ---- 2.7) T2★2 조합 → T3 전 28쌍 (클래스 대표 T2 순혈 사용) ----
 (function () {
-  var rng = L.makeRng(42), t2early = 0, t2late = 0, N = 2000;
-  function isT2Slot(s) {
-    return s.kind === 'randT2' || (s.kind === 'unit' && D.UNITS[s.unitId].tier === 2);
-  }
+  var rep = { K: 'grandknight', W: 'berserker', A: 'hawkeye', M: 'highmage',
+              C: 'bishop', R: 'assassin', N: 'highsummoner' };
+  Object.keys(D.EVOLUTION[3]).forEach(function (key) {
+    var cls = key.split('+');
+    var r = L.mergeResult(rep[cls[0]], 2, rep[cls[1]], 2);
+    eq('T3 진화 ' + key, r && r.unitId, D.EVOLUTION[3][key]);
+  });
+}());
+
+// ---- 3) 상점 롤 + 선택지 잠금 + 이자 ----
+(function () {
+  var rng = L.makeRng(42), t2early = 0, tierLate = { 1: 0, 2: 0, 3: 0 }, N = 2000;
   for (var i = 0; i < N; i++) {
-    L.rollShop(2, rng).forEach(function (s) { if (isT2Slot(s)) t2early++; });
-    L.rollShop(9, rng).forEach(function (s) { if (isT2Slot(s)) t2late++; });
+    L.rollShop(null, 2, rng).forEach(function (s) { if (s.tier >= 2) t2early++; });
+    L.rollShop(null, 10, rng).forEach(function (s) { tierLate[s.tier]++; });
   }
-  ok('웨이브2 T2 슬롯 없음', t2early === 0);
-  var rate = t2late / (N * 4);
-  ok('웨이브9 T2 슬롯 ≈ 40% (실측 ' + (rate * 100).toFixed(1) + '%)', rate > 0.36 && rate < 0.44);
+  ok('웨이브2 T2+ 슬롯 없음', t2early === 0);
+  var t3rate = tierLate[3] / (N * 4);
+  var t2rate = tierLate[2] / (N * 4);
+  ok('웨이브10 T3 슬롯 ≈ 15% (실측 ' + (t3rate * 100).toFixed(1) + '%)', t3rate > 0.12 && t3rate < 0.18);
+  ok('웨이브10 T2 슬롯 ≈ 34% (실측 ' + (t2rate * 100).toFixed(1) + '%)', t2rate > 0.30 && t2rate < 0.38);
   // 가격 매핑 검증
   var rng2 = L.makeRng(7), priceOk = true;
+  var PRICE = { 1: [D.SHOP.priceT1, D.SHOP.priceRandT1], 2: [D.SHOP.priceT2, D.SHOP.priceRandT2],
+                3: [D.SHOP.priceT3, D.SHOP.priceRandT3] };
   for (var j = 0; j < 500; j++) {
-    L.rollShop(9, rng2).forEach(function (s) {
-      var want = s.kind === 'unit'
-        ? (D.UNITS[s.unitId].tier === 2 ? D.SHOP.priceT2 : D.SHOP.priceT1)
-        : (s.kind === 'randT2' ? D.SHOP.priceRandT2 : D.SHOP.priceRandT1);
+    L.rollShop(null, 10, rng2).forEach(function (s) {
+      var want = PRICE[s.tier][s.kind === 'unit' ? 0 : 1];
       if (s.price !== want) priceOk = false;
     });
   }
-  ok('슬롯 가격 매핑 (확정3/9G·랜덤2/7G)', priceOk);
-  ok('랜덤T1 < 확정T1 가격', D.SHOP.priceRandT1 < D.SHOP.priceT1);
-  ok('랜덤T2 < 확정T2 가격', D.SHOP.priceRandT2 < D.SHOP.priceT2);
+  ok('슬롯 가격 매핑 (확정 3/9/18G·랜덤 2/7/14G)', priceOk);
+  ok('랜덤가 < 확정가 (전 티어)', D.SHOP.priceRandT1 < D.SHOP.priceT1 &&
+    D.SHOP.priceRandT2 < D.SHOP.priceT2 && D.SHOP.priceRandT3 < D.SHOP.priceT3);
+  ok('확정 T3가 > 판매 상한', D.SHOP.priceT3 > 16);
   // 랜덤 카드 해석 티어 검증
   var rng3 = L.makeRng(9), tierOk = true;
   for (var k = 0; k < 200; k++) {
-    if (D.UNITS[L.resolveShopUnit({ kind: 'randT1' }, rng3)].tier !== 1) tierOk = false;
-    if (D.UNITS[L.resolveShopUnit({ kind: 'randT2' }, rng3)].tier !== 2) tierOk = false;
+    if (D.UNITS[L.resolveShopUnit({ kind: 'randT1', tier: 1 }, rng3)].tier !== 1) tierOk = false;
+    if (D.UNITS[L.resolveShopUnit({ kind: 'randT2', tier: 2 }, rng3)].tier !== 2) tierOk = false;
+    if (D.UNITS[L.resolveShopUnit({ kind: 'randT3', tier: 3 }, rng3)].tier !== 3) tierOk = false;
   }
   ok('랜덤 카드 티어 해석', tierOk);
+  // 선택지 잠금: 잠긴 슬롯은 재롤에서 유지, 판매된 잠금 슬롯은 교체
+  var rng4 = L.makeRng(11);
+  var shop = L.rollShop(null, 10, rng4);
+  shop[1].locked = true;
+  shop[2].locked = true; shop[2].sold = true;
+  var next = L.rollShop(shop, 10, rng4);
+  ok('잠긴 선택지 유지', next[1] === shop[1]);
+  ok('판매된 잠금 선택지는 교체', next[2] !== shop[2]);
+  ok('잠기지 않은 선택지는 교체', next[0] !== shop[0] || next[0].sold === false);
   // 이자 (10G당 +1, 상한 +5)
   eq('이자 0G', L.interestFor(0), 0);
   eq('이자 9G', L.interestFor(9), 0);
@@ -143,9 +177,10 @@ function tryMergesArmy(army) {
 }
 
 function makeRoster(army) {
-  // 강한 순 8체 출전, 근접 앞줄 배치
+  // 강한 순(머지 단계) 8체 출전, 근접 앞줄 배치
+  function power(u) { return L.mergeSteps(D.UNITS[u.unitId].tier, u.star); }
   var roster = army.slice().sort(function (a, b) {
-    return L.sellValue(b.unitId, b.star) - L.sellValue(a.unitId, a.star);
+    return power(b) - power(a);
   }).slice(0, 8).map(function (u) { return { unitId: u.unitId, star: u.star, col: 0, row: 0 }; });
   var taken = {};
   roster.forEach(function (u) {
@@ -167,7 +202,7 @@ function runChapter(chIdx, seed) {
   var w = 1;
   while (w <= D.WAVES_PER_CHAPTER) {
     gold += D.SHOP.income + L.interestFor(gold);
-    var shop = L.rollShop(w, rng);
+    var shop = L.rollShop(null, w, rng);
     var bought = true;
     while (bought) {
       bought = false;

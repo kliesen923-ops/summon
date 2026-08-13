@@ -63,8 +63,9 @@
     for (var i = 0; i < D.LIVES; i++) s += i < n ? '❤️' : '🖤';
     document.getElementById('tb-lives').textContent = s;
   }
-  // ---- 상점 4슬롯 렌더 (v0.5) ----
-  function showShop(slots, canBuy, onBuy) {
+  // ---- 상점 4슬롯 렌더 (v0.5, v0.7: 선택지별 잠금) ----
+  function tierClass(t) { return t === 3 ? ' tier3' : (t === 2 ? ' tier2' : ''); }
+  function showShop(slots, canBuy, onBuy, onToggleLock) {
     var row = document.getElementById('draft-cards');
     row.innerHTML = '';
     slots.forEach(function (slot, i) {
@@ -81,32 +82,73 @@
         var u = D.UNITS[slot.unitId], cl = D.CLASSES[u.cls];
         body = '<div class="em">' + u.emoji + '</div>' +
           '<div class="nm">' + u.name + '</div>' +
-          '<div class="cl' + (u.tier === 2 ? ' tier2' : '') + '">' +
-          cl.icon + ' ' + cl.name + (u.tier === 2 ? ' · T2' : '') + '</div>';
+          '<div class="cl' + tierClass(u.tier) + '">' +
+          cl.icon + ' ' + cl.name + (u.tier > 1 ? ' · T' + u.tier : '') + '</div>';
         el.className = 'card' + (buyable ? '' : ' off');
       } else {
-        var isT2 = slot.kind === 'randT2';
         body = '<div class="em">❓</div>' +
           '<div class="nm">랜덤 유닛</div>' +
-          '<div class="cl' + (isT2 ? ' tier2' : '') + '">' + (isT2 ? 'Tier 2' : 'Tier 1') + '</div>';
+          '<div class="cl' + tierClass(slot.tier) + '">Tier ' + slot.tier + '</div>';
         el.className = 'card rand' + (buyable ? '' : ' off');
       }
-      el.innerHTML = body + '<div class="price">💰 ' + slot.price + 'G</div>';
+      if (slot.locked) el.className += ' locked';
+      el.innerHTML = body + '<div class="price">💰 ' + slot.price + 'G</div>' +
+        '<div class="lock-btn' + (slot.locked ? ' on' : '') + '">' + (slot.locked ? '🔒' : '🔓') + '</div>';
       if (buyable) el.onclick = function () { onBuy(i); };
+      el.querySelector('.lock-btn').onclick = function (ev) {
+        ev.stopPropagation();
+        onToggleLock(i);
+      };
+      if (slot.kind === 'unit') { // 확정 카드 호버 → 스탯·스킬 툴팁 (패널 위 고정 위치)
+        el.onmouseenter = function () { showUnitTooltip(slot.unitId, 1, 202, 552); };
+        el.onmouseleave = hideTooltip;
+      }
       row.appendChild(el);
     });
   }
   function clearShop() { document.getElementById('draft-cards').innerHTML = ''; }
-  function setButtons(showStart, showReroll, showLock) {
+  function setButtons(showStart, showReroll) {
     document.getElementById('btn-start').classList.toggle('hidden', !showStart);
     document.getElementById('btn-reroll').classList.toggle('hidden', !showReroll);
-    document.getElementById('btn-lock').classList.toggle('hidden', !showLock);
   }
-  function setLock(locked) {
-    var b = document.getElementById('btn-lock');
-    b.textContent = locked ? '🔒' : '🔓';
-    b.classList.toggle('locked', locked);
+
+  // ---- 유닛 툴팁 (스탯 + 클래스 스킬) ----
+  var ROLE_NAMES = {
+    tank: '탱킹', melee: '근접딜', ranged: '원거리딜', aoe: '광역마법',
+    support: '지원힐', assassin: '암살처형', summon: '소환'
+  };
+  function unitTooltipHtml(unitId, star, live) {
+    var u = D.UNITS[unitId], cl = D.CLASSES[u.cls], sk = D.SKILLS[u.cls];
+    var s = L.statsFor(unitId, star);
+    var stars = '';
+    if (D.STAR_CAP[u.tier] > 1) for (var i = 0; i < star; i++) stars += '★';
+    var tierTag = u.tier > 1 ? ' <span class="tt-tier' + u.tier + '">T' + u.tier + '</span>' : '';
+    var hp = live ? Math.max(0, Math.round(live.hp)) + '/' + s.hp : s.hp;
+    var mana = live ? Math.round(live.mana) + '/' + s.manaMax : s.manaMax;
+    var html =
+      '<div class="tt-name">' + u.emoji + ' ' + u.name + ' <span style="color:#ffd76a">' + stars + '</span>' + tierTag + '</div>' +
+      '<div class="tt-role">' + cl.icon + ' ' + cl.name + ' · ' + ROLE_NAMES[u.arch] + '</div>' +
+      '<div class="tt-stats">' +
+      '<span>❤️ 체력 ' + hp + '</span><span>⚔️ 공격 ' + s.atk + '</span>' +
+      '<span>⚡ 공속 ' + s.as + '/초</span><span>📏 사거리 ' + s.range + '칸</span>' +
+      '<span>🔹 마나 ' + mana + '</span>' +
+      (s.hps ? '<span>💚 초당 힐 ' + s.hps + '</span>' : '') +
+      '</div>' +
+      '<div class="tt-skill"><b>' + sk.name + '</b> — ' + sk.desc + '</div>';
+    return html;
   }
+  function showUnitTooltip(unitId, star, x, y, live) {
+    var el = document.getElementById('tooltip');
+    el.innerHTML = unitTooltipHtml(unitId, star, live);
+    el.classList.remove('hidden');
+    var w = 188, h = el.offsetHeight;
+    var px = Math.max(5, Math.min(405 - w - 5, x - w / 2));
+    var py = y - h - 42;
+    if (py < 40) py = Math.min(720 - h - 5, y + 42);
+    el.style.left = px + 'px';
+    el.style.top = py + 'px';
+  }
+  function hideTooltip() { document.getElementById('tooltip').classList.add('hidden'); }
   function setStartLabel(sec) {
     document.getElementById('btn-start').textContent =
       sec === null ? '전투 시작' : '전투 시작 (' + sec + ')';
@@ -148,8 +190,8 @@
     roundRect(x - S / 2, y - S / 2, S, S, 10);
     ctx.fillStyle = cl.color;
     ctx.fill();
-    ctx.lineWidth = u.tier === 2 ? 3 : 1.5;
-    ctx.strokeStyle = u.tier === 2 ? '#ffd76a' : '#ffffff55';
+    ctx.lineWidth = u.tier >= 2 ? 3 : 1.5;
+    ctx.strokeStyle = u.tier === 3 ? '#7ef0ff' : (u.tier === 2 ? '#ffd76a' : '#ffffff55');
     ctx.stroke();
     // 머지 힌트 반짝임
     if (opts.hint) {
@@ -173,11 +215,13 @@
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
     ctx.fillText(u.emoji, x, y + 1);
-    ctx.font = 'bold ' + (S < 45 ? 9 : 11) + 'px sans-serif';
-    ctx.fillStyle = '#ffd76a';
-    var stars = '';
-    for (var i = 0; i < star; i++) stars += '★';
-    ctx.fillText(stars, x, y - S / 2 - 9);
+    if (D.STAR_CAP[u.tier] > 1) { // T3+ = 성급 없음 → 별 미표시
+      ctx.font = 'bold ' + (S < 45 ? 9 : 11) + 'px sans-serif';
+      ctx.fillStyle = '#ffd76a';
+      var stars = '';
+      for (var i = 0; i < star; i++) stars += '★';
+      ctx.fillText(stars, x, y - S / 2 - 9);
+    }
     // HP/마나 바 (전투 중)
     if (opts.hpFrac !== undefined) {
       drawBar(x - S / 2, y + S / 2 + 3, S, 5, opts.hpFrac, '#63c04f');
@@ -474,7 +518,8 @@
     showScreen: showScreen, buildMain: buildMain,
     setPanelMsg: setPanelMsg, setTopbar: setTopbar, setGold: setGold, setLives: setLives,
     showShop: showShop, clearShop: clearShop,
-    setButtons: setButtons, setLock: setLock, setStartLabel: setStartLabel,
+    setButtons: setButtons, setStartLabel: setStartLabel,
+    showUnitTooltip: showUnitTooltip, hideTooltip: hideTooltip,
     showResult: showResult,
     cellAt: cellAt
   };

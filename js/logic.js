@@ -20,9 +20,11 @@
   }
 
   // ---- 파워 사다리 (기준표 §1) ----
-  // 머지 단계 n = T1: star-1 / T2: 2+star
+  // 머지 단계 n = T1: star-1 (0~2) / T2: 2+star (3~4) / T3: 5 (성급 없음)
   function mergeSteps(tier, star) {
-    return tier === 1 ? star - 1 : 2 + star;
+    if (tier === 1) return star - 1;
+    if (tier === 2) return 2 + star;
+    return 5;
   }
   function ladderMult(n) { return Math.pow(1.5, n); }
   function roundHp(v) { return Math.round(v / 5) * 5; }
@@ -52,43 +54,52 @@
     if (aId === bId && aStar === bStar && aStar < D.STAR_CAP[a.tier]) {
       return { type: 'star', unitId: aId, star: aStar + 1 };
     }
-    // 규칙 2: 최대 성급 둘 → 클래스 쌍 진화 (프로토타입은 T1 → T2만)
+    // 규칙 2: 같은 티어 최대 성급 둘 → 클래스 쌍으로 상위 티어 진화 (T1→T2, T2→T3)
     var aMax = aStar === D.STAR_CAP[a.tier];
     var bMax = bStar === D.STAR_CAP[b.tier];
-    if (aMax && bMax && a.tier === 1 && b.tier === 1) {
+    if (aMax && bMax && a.tier === b.tier && D.EVOLUTION[a.tier + 1]) {
       var key = [a.cls, b.cls].sort().join('+');
-      return { type: 'evolve', unitId: D.EVOLUTION[key] };
+      return { type: 'evolve', unitId: D.EVOLUTION[a.tier + 1][key] };
     }
-    return null; // T2 최대 성급 쌍(→T3)은 미구현: 무반응
+    return null; // T3 쌍(→T4)은 미구현: 무반응
   }
 
-  // ---- 상점 (설계 §5, v0.5) ----
-  var T1_IDS = [], T2_IDS = [];
+  // ---- 상점 (설계 §5, v0.5~v0.7) ----
+  var TIER_IDS = { 1: [], 2: [], 3: [] };
   Object.keys(D.UNITS).forEach(function (id) {
-    (D.UNITS[id].tier === 1 ? T1_IDS : T2_IDS).push(id);
+    TIER_IDS[D.UNITS[id].tier].push(id);
   });
+  var T1_IDS = TIER_IDS[1], T2_IDS = TIER_IDS[2], T3_IDS = TIER_IDS[3];
 
-  // 4슬롯 생성. 슬롯 = {kind:'unit'|'randT1'|'randT2', unitId?, price, sold}
+  var TIER_PRICE = {
+    1: { unit: D.SHOP.priceT1, rand: D.SHOP.priceRandT1 },
+    2: { unit: D.SHOP.priceT2, rand: D.SHOP.priceRandT2 },
+    3: { unit: D.SHOP.priceT3, rand: D.SHOP.priceRandT3 }
+  };
+
+  // 슬롯 1개 생성. {kind:'unit'|'randT1~3', unitId?, tier, price, sold, locked}
   // 확정 카드도 완전 랜덤 (v0.6 — 보유 유닛 재등장 바이어스 폐지)
-  function rollShop(wave, rng) {
+  function rollSlot(wave, rng) {
+    var tier = 1;
+    if (rng() < D.SHOP.t3Chance(wave)) tier = 3;
+    else if (rng() < D.SHOP.t2Chance(wave)) tier = 2;
+    if (rng() < D.SHOP.randChance) {
+      return { kind: 'randT' + tier, tier: tier, price: TIER_PRICE[tier].rand, sold: false, locked: false };
+    }
+    var pool = TIER_IDS[tier];
+    return {
+      kind: 'unit', unitId: pool[Math.floor(rng() * pool.length)],
+      tier: tier, price: TIER_PRICE[tier].unit, sold: false, locked: false
+    };
+  }
+
+  // 상점 갱신: 잠긴(🔒) 미판매 선택지는 유지, 나머지만 새로 롤 (v0.7 선택지별 잠금)
+  function rollShop(prevShop, wave, rng) {
     var slots = [];
-    var p2 = D.SHOP.t2Chance(wave);
     for (var i = 0; i < D.SHOP.slots; i++) {
-      var isT2 = rng() < p2;
-      if (rng() < D.SHOP.randChance) {
-        slots.push({
-          kind: isT2 ? 'randT2' : 'randT1',
-          price: isT2 ? D.SHOP.priceRandT2 : D.SHOP.priceRandT1,
-          sold: false
-        });
-      } else {
-        var pool = isT2 ? T2_IDS : T1_IDS;
-        slots.push({
-          kind: 'unit', unitId: pool[Math.floor(rng() * pool.length)],
-          price: isT2 ? D.SHOP.priceT2 : D.SHOP.priceT1,
-          sold: false
-        });
-      }
+      var prev = prevShop && prevShop[i];
+      if (prev && prev.locked && !prev.sold) slots.push(prev);
+      else slots.push(rollSlot(wave, rng));
     }
     return slots;
   }
@@ -101,7 +112,7 @@
   // 구매 시점에 유닛 확정 (랜덤 카드는 여기서 추첨)
   function resolveShopUnit(slot, rng) {
     if (slot.kind === 'unit') return slot.unitId;
-    var pool = slot.kind === 'randT1' ? T1_IDS : T2_IDS;
+    var pool = TIER_IDS[slot.tier];
     return pool[Math.floor(rng() * pool.length)];
   }
 
@@ -145,10 +156,11 @@
     return out;
   }
 
-  // ---- 판매가: 투자 매몰비(T1 환산 장수) = 2^머지단계 → 1/2/4/8/16G ----
+  // ---- 판매가: 투자 매몰비(T1 환산 장수) = 2^머지단계, 상한 16G ----
+  // 상한 근거: T3 판매가가 구매가(18G)를 넘으면 구매→판매 차익이 생기므로 T2★2 값에서 캡
   function sellValue(unitId, star) {
     var u = D.UNITS[unitId];
-    return Math.pow(2, mergeSteps(u.tier, star));
+    return Math.min(Math.pow(2, mergeSteps(u.tier, star)), 16);
   }
 
   global.LOGIC = {
@@ -163,6 +175,7 @@
     interestFor: interestFor,
     makeWave: makeWave,
     T1_IDS: T1_IDS,
-    T2_IDS: T2_IDS
+    T2_IDS: T2_IDS,
+    T3_IDS: T3_IDS
   };
 }(typeof window !== 'undefined' ? window : globalThis));

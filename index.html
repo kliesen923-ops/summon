@@ -68,8 +68,25 @@
   .pbtn.primary:hover { background: #c9973c; }
   .pbtn.ghost { background: none; color: #8b93a7; }
   .pbtn:disabled { opacity: 0.35; cursor: default; }
-  #btn-lock { min-width: 52px; font-size: 18px; }
-  #btn-lock.locked { background: #b1832f; border-color: #d8b45a; }
+  .card { position: relative; }
+  .card .lock-btn { position: absolute; top: 3px; right: 5px; font-size: 13px;
+    opacity: 0.45; cursor: pointer; line-height: 1; }
+  .card .lock-btn.on { opacity: 1; }
+  .card.locked { border-color: #d8b45a; border-style: solid; }
+  .card .tier3 { color: #7ef0ff; }
+
+  /* ---- 유닛 툴팁 ---- */
+  #tooltip { position: absolute; z-index: 50; width: 188px; pointer-events: none;
+    background: #171a22f2; border: 1px solid #46506e; border-radius: 10px;
+    padding: 9px 11px; font-size: 11px; color: #cfd6e8; line-height: 1.5;
+    box-shadow: 0 4px 14px #000a; }
+  #tooltip .tt-name { font-size: 13px; font-weight: bold; color: #f0e6c8; }
+  #tooltip .tt-tier2 { color: #ffd76a; }
+  #tooltip .tt-tier3 { color: #7ef0ff; }
+  #tooltip .tt-role { color: #8b93a7; margin-bottom: 4px; }
+  #tooltip .tt-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
+  #tooltip .tt-skill { margin-top: 5px; padding-top: 5px; border-top: 1px solid #363d52; }
+  #tooltip .tt-skill b { color: #ffd76a; }
   .hidden { display: none !important; }
 
   /* ---- 결과 화면 ---- */
@@ -102,7 +119,6 @@
         <div id="panel-buttons">
           <button id="btn-start" class="pbtn primary hidden">전투 시작</button>
           <button id="btn-reroll" class="pbtn hidden">🎲 리롤 2G</button>
-          <button id="btn-lock" class="pbtn ghost hidden">🔓</button>
         </div>
       </div>
     </div>
@@ -112,6 +128,8 @@
       <div id="result-sub"></div>
       <button id="btn-to-main" class="pbtn primary">메인으로</button>
     </div>
+
+    <div id="tooltip" class="hidden"></div>
   </div>
 </div>
 <script src="js/data.js"></script>

@@ -29,6 +29,7 @@
   // ---- 화면 전환 ----
   function toMain() {
     run = null; drag = null; dropZone = null;
+    UI.hideTooltip();
     UI.buildMain(progress, startChapter, function () {
       progress = { stars: {} }; save(); toMain();
     });
@@ -81,7 +82,7 @@
     run = {
       chIdx: ci, wave: 1, lives: D.LIVES,
       board: [], bench: [], gold: D.SHOP.startBonus, nextUid: 1,
-      shop: [], shopLocked: false, prepT: 0, lastSec: -1,
+      shop: null, prepT: 0, lastSec: -1,
       phase: 'prep', battle: null, rng: L.makeRng(Date.now() % 1e9)
     };
     UI.showScreen('game');
@@ -94,9 +95,7 @@
     run.battle = null;
     var interest = L.interestFor(run.gold);
     run.gold += D.SHOP.income + interest;
-    if (!run.shopLocked) {
-      run.shop = L.rollShop(run.wave, run.rng);
-    }
+    run.shop = L.rollShop(run.shop, run.wave, run.rng); // 잠긴 선택지는 유지
     run.prepT = D.SHOP.prepTime;
     run.lastSec = -1;
     UI.setTopbar(chapterLabel(), '웨이브 ' + run.wave + '/' + D.WAVES_PER_CHAPTER);
@@ -107,8 +106,7 @@
       : '적 ' + D.CHAPTERS[run.chIdx].countFor(run.wave) + '마리';
     UI.setPanelMsg('웨이브 ' + run.wave + '/' + D.WAVES_PER_CHAPTER + ' — ' + info +
       ' · 수입 +' + D.SHOP.income + 'G' + (interest > 0 ? ' (이자 +' + interest + 'G)' : ''));
-    UI.setButtons(true, true, true);
-    UI.setLock(run.shopLocked);
+    UI.setButtons(true, true);
     refreshShop();
   }
 
@@ -139,8 +137,14 @@
   }
 
   function refreshShop() {
-    UI.showShop(run.shop, canBuySlot, buySlot);
+    UI.showShop(run.shop, canBuySlot, buySlot, toggleSlotLock);
     updateReroll();
+  }
+
+  function toggleSlotLock(i) {
+    if (!run || run.phase !== 'prep') return;
+    run.shop[i].locked = !run.shop[i].locked;
+    refreshShop();
   }
 
   function updateReroll() {
@@ -150,15 +154,9 @@
   function rerollShop() {
     if (!run || run.phase !== 'prep' || run.gold < D.SHOP.reroll) return;
     run.gold -= D.SHOP.reroll;
-    run.shop = L.rollShop(run.wave, run.rng);
+    run.shop = L.rollShop(run.shop, run.wave, run.rng); // 잠긴 선택지 제외 교체
     UI.setGold(run.gold);
     refreshShop();
-  }
-
-  function toggleLock() {
-    if (!run || run.phase !== 'prep') return;
-    run.shopLocked = !run.shopLocked;
-    UI.setLock(run.shopLocked);
   }
 
   // 카드 수급: 보드 빈칸 자동 배치 → 만석이면 벤치 → 둘 다 만석이면 즉시 머지
@@ -210,7 +208,8 @@
       return;
     }
     run.phase = 'battle';
-    UI.setButtons(false, false, false);
+    UI.setButtons(false, false);
+    UI.hideTooltip();
     UI.clearShop();
     UI.setPanelMsg('⚔ 웨이브 ' + run.wave + ' 전투 중...');
     var enemies = L.makeWave(run.chIdx, run.wave, run.rng);
@@ -293,7 +292,33 @@
     drag = { uid: b.uid, unitId: b.unitId, star: b.star, x: p.x, y: p.y };
   }
   function onDragMove(p, zone) {
-    if (drag) { drag.x = p.x; drag.y = p.y; dropZone = zone; }
+    if (drag) {
+      drag.x = p.x; drag.y = p.y; dropZone = zone;
+      UI.hideTooltip();
+      return;
+    }
+    updateHover(p, zone);
+  }
+
+  // 호버 툴팁: 준비 = 보드·벤치 유닛 / 전투 = 살아있는 유닛 (스탯·스킬 정보)
+  function updateHover(p, zone) {
+    if (!run) return;
+    if (run.phase === 'prep') {
+      var e = (zone && zone.type !== 'sell') ? entryAtZone(zone) : null;
+      if (e) { UI.showUnitTooltip(e.unitId, e.star, p.x, p.y); return; }
+    } else if (run.phase === 'battle' && run.battle) {
+      var best = null, bd = 27;
+      run.battle.units.forEach(function (u) {
+        if (!u.alive || u.isSpirit) return;
+        var d = Math.sqrt((u.x - p.x) * (u.x - p.x) + (u.y - p.y) * (u.y - p.y));
+        if (d < bd) { bd = d; best = u; }
+      });
+      if (best) {
+        UI.showUnitTooltip(best.unitId, best.star, p.x, p.y, { hp: best.hp, mana: best.mana });
+        return;
+      }
+    }
+    UI.hideTooltip();
   }
   function onDragEnd(p, zone) {
     var d = drag;
@@ -378,7 +403,6 @@
     if (run && run.phase === 'prep') startWave();
   };
   document.getElementById('btn-reroll').onclick = rerollShop;
-  document.getElementById('btn-lock').onclick = toggleLock;
   document.getElementById('btn-exit').onclick = toMain;
   document.getElementById('btn-to-main').onclick = toMain;
 

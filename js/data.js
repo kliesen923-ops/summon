@@ -80,22 +80,64 @@
     conjurer:    { tier: 2, cls: 'N', arch: 'summon',   name: '컨저러',       emoji: '🪄' },
     exorcist:    { tier: 2, cls: 'C', arch: 'support',  name: '엑소시스트',   emoji: '📿' },
     druid:       { tier: 2, cls: 'C', arch: 'support',  name: '드루이드',     emoji: '🍃' },
-    hunter:      { tier: 2, cls: 'R', arch: 'assassin', name: '헌터',         emoji: '🐺' }
+    hunter:      { tier: 2, cls: 'R', arch: 'assassin', name: '헌터',         emoji: '🐺' },
+    // Tier 3 — 영웅 칭호, 성급 없음 (조합 매트릭스 v1.5 §3) — 순혈 7
+    sentinel:     { tier: 3, cls: 'K', arch: 'tank',     name: '센티넬',       emoji: '🏯' },
+    warlord:      { tier: 3, cls: 'W', arch: 'melee',    name: '워로드',       emoji: '🦾', splash: 1 },
+    stormranger:  { tier: 3, cls: 'A', arch: 'ranged',   name: '스톰레인저',   emoji: '🌩️', splash: 1 },
+    archmage:     { tier: 3, cls: 'M', arch: 'aoe',      name: '아크메이지',   emoji: '☄️', splash: 1 },
+    saint:        { tier: 3, cls: 'C', arch: 'support',  name: '세인트',       emoji: '😇' },
+    phantom:      { tier: 3, cls: 'R', arch: 'assassin', name: '팬텀',         emoji: '👻' },
+    spiritlord:   { tier: 3, cls: 'N', arch: 'summon',   name: '스피릿로드',   emoji: '🌌' },
+    // Tier 3 — 이종 21
+    battlemaster: { tier: 3, cls: 'W', arch: 'melee',    name: '배틀마스터',   emoji: '🚩' },
+    ballista:     { tier: 3, cls: 'K', arch: 'tank',     name: '발리스타',     emoji: '🧱', range: 4 },
+    runeguardian: { tier: 3, cls: 'K', arch: 'tank',     name: '룬가디언',     emoji: '🧿' },
+    crusader:     { tier: 3, cls: 'K', arch: 'tank',     name: '크루세이더',   emoji: '🔆' },
+    darkknight:   { tier: 3, cls: 'R', arch: 'melee',    name: '다크나이트',   emoji: '🦇' },
+    ironbark:     { tier: 3, cls: 'N', arch: 'tank',     name: '아이언바크',   emoji: '🪵' },
+    halberdier:   { tier: 3, cls: 'W', arch: 'melee',    name: '할버디어',     emoji: '🔱', range: 2 },
+    spellbreaker: { tier: 3, cls: 'W', arch: 'melee',    name: '스펠브레이커', emoji: '💥' },
+    templar:      { tier: 3, cls: 'C', arch: 'melee',    name: '템플러',       emoji: '🕯️' },
+    bladedancer:  { tier: 3, cls: 'R', arch: 'assassin', name: '블레이드댄서', emoji: '🩰' },
+    earthbreaker: { tier: 3, cls: 'N', arch: 'melee',    name: '어스브레이커', emoji: '🌋', splash: 1 },
+    arcanearcher: { tier: 3, cls: 'M', arch: 'ranged',   name: '아케인아처',   emoji: '🌠', splash: 1 },
+    deadeye:      { tier: 3, cls: 'A', arch: 'ranged',   name: '데드아이',     emoji: '👁️' },
+    shadowranger: { tier: 3, cls: 'A', arch: 'ranged',   name: '섀도우레인저', emoji: '🌒' },
+    windwalker:   { tier: 3, cls: 'A', arch: 'ranged',   name: '윈드워커',     emoji: '💨', splash: 1 },
+    grandsage:    { tier: 3, cls: 'M', arch: 'aoe',      name: '그랜드세이지', emoji: '📜' },
+    necromancer:  { tier: 3, cls: 'M', arch: 'aoe',      name: '네크로맨서',   emoji: '⚰️' },
+    grandsummoner:{ tier: 3, cls: 'N', arch: 'summon',   name: '그랜드서머너', emoji: '🎇' },
+    inquisitor:   { tier: 3, cls: 'C', arch: 'support',  name: '인퀴지터',     emoji: '⚖️' },
+    archdruid:    { tier: 3, cls: 'C', arch: 'support',  name: '아크드루이드', emoji: '🌺' },
+    beastmaster:  { tier: 3, cls: 'R', arch: 'assassin', name: '비스트마스터', emoji: '🐗' }
   };
 
-  // ---- 진화표: 클래스 쌍(정렬 키) → T2 유닛 id (매트릭스 v1.5 §2) ----
+  // ---- 진화표: 결과 티어 → (클래스 쌍 정렬 키 → 유닛 id) — 혈통 배정 규칙 전 티어 공통 ----
   var EVOLUTION = {
-    'K+K': 'grandknight', 'W+W': 'berserker', 'A+A': 'hawkeye', 'M+M': 'highmage',
-    'C+C': 'bishop', 'R+R': 'assassin', 'N+N': 'highsummoner',
-    'K+W': 'gladiator', 'A+K': 'arbalist', 'K+M': 'spellblade',
-    'C+K': 'paladin', 'K+R': 'slayer', 'K+N': 'greenknight',
-    'A+W': 'tomahawk', 'M+W': 'runeblade', 'C+W': 'monk', 'R+W': 'ronin', 'N+W': 'shaman',
-    'A+M': 'spellarcher', 'A+C': 'holyarcher', 'A+R': 'sniper', 'A+N': 'windarcher',
-    'C+M': 'sage', 'M+R': 'warlock', 'M+N': 'conjurer',
-    'C+R': 'exorcist', 'C+N': 'druid', 'N+R': 'hunter'
+    2: {
+      'K+K': 'grandknight', 'W+W': 'berserker', 'A+A': 'hawkeye', 'M+M': 'highmage',
+      'C+C': 'bishop', 'R+R': 'assassin', 'N+N': 'highsummoner',
+      'K+W': 'gladiator', 'A+K': 'arbalist', 'K+M': 'spellblade',
+      'C+K': 'paladin', 'K+R': 'slayer', 'K+N': 'greenknight',
+      'A+W': 'tomahawk', 'M+W': 'runeblade', 'C+W': 'monk', 'R+W': 'ronin', 'N+W': 'shaman',
+      'A+M': 'spellarcher', 'A+C': 'holyarcher', 'A+R': 'sniper', 'A+N': 'windarcher',
+      'C+M': 'sage', 'M+R': 'warlock', 'M+N': 'conjurer',
+      'C+R': 'exorcist', 'C+N': 'druid', 'N+R': 'hunter'
+    },
+    3: {
+      'K+K': 'sentinel', 'W+W': 'warlord', 'A+A': 'stormranger', 'M+M': 'archmage',
+      'C+C': 'saint', 'R+R': 'phantom', 'N+N': 'spiritlord',
+      'K+W': 'battlemaster', 'A+K': 'ballista', 'K+M': 'runeguardian',
+      'C+K': 'crusader', 'K+R': 'darkknight', 'K+N': 'ironbark',
+      'A+W': 'halberdier', 'M+W': 'spellbreaker', 'C+W': 'templar', 'R+W': 'bladedancer', 'N+W': 'earthbreaker',
+      'A+M': 'arcanearcher', 'A+C': 'deadeye', 'A+R': 'shadowranger', 'A+N': 'windwalker',
+      'C+M': 'grandsage', 'M+R': 'necromancer', 'M+N': 'grandsummoner',
+      'C+R': 'inquisitor', 'C+N': 'archdruid', 'N+R': 'beastmaster'
+    }
   };
 
-  var STAR_CAP = { 1: 3, 2: 2 }; // 티어 → 성급 상한 (성급 피라미드)
+  var STAR_CAP = { 1: 3, 2: 2, 3: 1 }; // 티어 → 성급 상한 (성급 피라미드, T3 = 성급 없음)
 
   // ---- 클래스 스킬 (마나 가득 시 자동 시전, 기준표 §5) ----
   var SKILLS = {
@@ -133,6 +175,8 @@
     priceRandT1: 2,              // 랜덤 T1 (확정보다 저렴)
     priceT2: 9,                  // 확정 T2 (판매가 8G보다 비싸게 — 되팔이 차단)
     priceRandT2: 7,              // 랜덤 T2
+    priceT3: 18,                 // 확정 T3 (판매가 상한 16G보다 비싸게)
+    priceRandT3: 14,             // 랜덤 T3
     reroll: 2,
     income: 4,                   // 웨이브 시작 기본 지급
     startBonus: 4,               // 런 시작 추가 지급 (1웨이브 총 8G)
@@ -144,6 +188,9 @@
       if (wave <= 3) return 0;
       if (wave <= 7) return 0.25;
       return 0.40;
+    },
+    t3Chance: function (wave) {  // 웨이브별 T3 슬롯 확률 (후반 혼입)
+      return wave >= 9 ? 0.15 : 0;
     }
   };
 
