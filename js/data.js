@@ -1,7 +1,7 @@
 /* =========================================================
  * 프로젝트 서몬 프로토타입 — data.js
  * 상수 정의: 아키타입 7종, 클래스 7종, 유닛 35종(T1 7 + T2 28), 스킬, 챕터/웨이브
- * 근거 문서: 유닛 스탯 기준표 v0.1 / 조합 매트릭스 v1.6
+ * 근거 문서: 유닛 스탯 기준표 v0.1 / 조합 매트릭스 v1.7
  * ========================================================= */
 (function (global) {
   'use strict';
@@ -51,7 +51,7 @@
     cleric:   { tier: 1, cls: 'C', arch: 'support',  name: '클레릭',  emoji: '✨' },
     rogue:    { tier: 1, cls: 'R', arch: 'assassin', name: '로그',    emoji: '🗡️' },
     summoner: { tier: 1, cls: 'N', arch: 'summon',   name: '서머너',  emoji: '🌿' },
-    // Tier 2 — (조합 매트릭스 v1.6) 순혈 7
+    // Tier 2 — (조합 매트릭스 v1.7) 순혈 7
     grandknight:  { tier: 2, cls: 'K', arch: 'tank',     name: '그랜드나이트', emoji: '🏰' },
     berserker:    { tier: 2, cls: 'W', arch: 'melee',    name: '버서커',       emoji: '🪓' },
     hawkeye:      { tier: 2, cls: 'A', arch: 'ranged',   name: '호크아이',     emoji: '🦅', range: 8 },
@@ -81,7 +81,7 @@
     exorcist:    { tier: 2, cls: 'C', arch: 'support',  name: '엑소시스트',   emoji: '📿' },
     druid:       { tier: 2, cls: 'C', arch: 'support',  name: '드루이드',     emoji: '🍃' },
     hunter:      { tier: 2, cls: 'R', arch: 'assassin', name: '헌터',         emoji: '🐺' },
-    // Tier 3 — 영웅 칭호 (조합 매트릭스 v1.6 §3) — 순혈 7
+    // Tier 3 — 영웅 칭호 (조합 매트릭스 v1.7 §3) — 순혈 7
     sentinel:     { tier: 3, cls: 'K', arch: 'tank',     name: '센티넬',       emoji: '🏯' },
     warlord:      { tier: 3, cls: 'W', arch: 'melee',    name: '워로드',       emoji: '🦾', splash: 1 },
     stormranger:  { tier: 3, cls: 'A', arch: 'ranged',   name: '스톰레인저',   emoji: '🌩️', splash: 1 },
@@ -111,7 +111,7 @@
     inquisitor:   { tier: 3, cls: 'C', arch: 'support',  name: '인퀴지터',     emoji: '⚖️' },
     archdruid:    { tier: 3, cls: 'C', arch: 'support',  name: '아크드루이드', emoji: '🌺' },
     beastmaster:  { tier: 3, cls: 'R', arch: 'assassin', name: '비스트마스터', emoji: '🐗' },
-    // Tier 4 — 전설 칭호 (조합 매트릭스 v1.6 §4) — 상점 미등장, 오직 진화로만. 순혈 7
+    // Tier 4 — 전설 칭호 (조합 매트릭스 v1.7 §4) — 상점 미등장, 오직 진화로만. 순혈 7
     // v1.6: 신화 인물·존재 고유명 폐지 → 직업·칭호형 개명 (내부 id는 유지)
     aegis:        { tier: 4, cls: 'K', arch: 'tank',     name: '불워크',       emoji: '🏛️' },
     ares:         { tier: 4, cls: 'W', arch: 'melee',    name: '컨쿼러',       emoji: '💢', splash: 1 },
@@ -141,7 +141,37 @@
     archsummoner: { tier: 4, cls: 'N', arch: 'summon',   name: '아크서머너',   emoji: '🎆' },
     judgment:     { tier: 4, cls: 'C', arch: 'support',  name: '저지먼트',     emoji: '🔔' },
     lifegiver:    { tier: 4, cls: 'C', arch: 'support',  name: '라이프기버',   emoji: '🌸' },
-    beastking:    { tier: 4, cls: 'R', arch: 'assassin', name: '비스트킹',     emoji: '🦁' }
+    beastking:    { tier: 4, cls: 'R', arch: 'assassin', name: '비스트킹',     emoji: '🦁' },
+    // Tier 5 — 초월 칭호 (조합 매트릭스 v1.7 §5) — 28종 완전 체계, 진화 전용. 순혈 7
+    eternalguard:   { tier: 5, cls: 'K', arch: 'tank',     name: '이터널가드',     emoji: '🏔️' },
+    waremperor:     { tier: 5, cls: 'W', arch: 'melee',    name: '워엠퍼러',       emoji: '👑', splash: 1 },
+    starpiercer:    { tier: 5, cls: 'A', arch: 'ranged',   name: '스타피어서',     emoji: '💠', splash: 1 },
+    magicoverlord:  { tier: 5, cls: 'M', arch: 'aoe',      name: '매직오버로드',   emoji: '♾️', splash: 1 },
+    prophet:        { tier: 5, cls: 'C', arch: 'support',  name: '프로핏',         emoji: '🕊️' },
+    grandreaper:    { tier: 5, cls: 'R', arch: 'assassin', name: '그랜드리퍼',     emoji: '🪦' },
+    worldsummoner:  { tier: 5, cls: 'N', arch: 'summon',   name: '월드서머너',     emoji: '🌐' },
+    // Tier 5 — 이종 21
+    bladelord:      { tier: 5, cls: 'W', arch: 'melee',    name: '블레이드로드',   emoji: '🐉' },
+    citadel:        { tier: 5, cls: 'K', arch: 'tank',     name: '시타델',         emoji: '🗼', range: 4 },
+    runesovereign:  { tier: 5, cls: 'K', arch: 'tank',     name: '룬소버린',       emoji: '🔰' },
+    paladinking:    { tier: 5, cls: 'K', arch: 'tank',     name: '팔라딘킹',       emoji: '🎖️' },
+    abysslord:      { tier: 5, cls: 'R', arch: 'melee',    name: '어비스로드',     emoji: '🕸️' },
+    ancientbark:    { tier: 5, cls: 'N', arch: 'tank',     name: '에인션트바크',   emoji: '🌲' },
+    stormbringer:   { tier: 5, cls: 'W', arch: 'melee',    name: '스톰브링어',     emoji: '⛈️', range: 2 },
+    magicbreaker:   { tier: 5, cls: 'W', arch: 'melee',    name: '매직브레이커',   emoji: '⚒️', splash: 1 },
+    grandtemplar:   { tier: 5, cls: 'C', arch: 'melee',    name: '그랜드템플러',   emoji: '💒' },
+    wardancer:      { tier: 5, cls: 'R', arch: 'assassin', name: '워댄서',         emoji: '🎭' },
+    terraquaker:    { tier: 5, cls: 'N', arch: 'melee',    name: '테라퀘이커',     emoji: '🪨', splash: 1 },
+    cosmiccaller:   { tier: 5, cls: 'M', arch: 'ranged',   name: '코스믹콜러',     emoji: '🔭', splash: 1 },
+    radianteye:     { tier: 5, cls: 'A', arch: 'ranged',   name: '레디언트아이',   emoji: '🌄' },
+    eclipseranger:  { tier: 5, cls: 'A', arch: 'ranged',   name: '이클립스레인저', emoji: '🌑' },
+    hurricanearcher:{ tier: 5, cls: 'A', arch: 'ranged',   name: '허리케인아처',   emoji: '🌬️', splash: 1 },
+    eldersage:      { tier: 5, cls: 'M', arch: 'aoe',      name: '엘더세이지',     emoji: '📚' },
+    archlich:       { tier: 5, cls: 'M', arch: 'aoe',      name: '아크리치',       emoji: '🦴' },
+    gatekeeper:     { tier: 5, cls: 'N', arch: 'summon',   name: '게이트키퍼',     emoji: '🚪' },
+    arbiter:        { tier: 5, cls: 'C', arch: 'support',  name: '아비터',         emoji: '♎' },
+    lifewarden:     { tier: 5, cls: 'C', arch: 'support',  name: '라이프워든',     emoji: '🍀' },
+    primalhunter:   { tier: 5, cls: 'R', arch: 'assassin', name: '프라이멀헌터',   emoji: '🐾' }
   };
 
   // ---- 진화표: 결과 티어 → (클래스 쌍 정렬 키 → 유닛 id) — 혈통 배정 규칙 전 티어 공통 ----
@@ -175,11 +205,21 @@
       'A+M': 'starcaller', 'A+C': 'daybreaker', 'A+R': 'nightraven', 'A+N': 'cyclone',
       'C+M': 'oracle', 'M+R': 'lich', 'M+N': 'archsummoner',
       'C+R': 'judgment', 'C+N': 'lifegiver', 'N+R': 'beastking'
+    },
+    5: {
+      'K+K': 'eternalguard', 'W+W': 'waremperor', 'A+A': 'starpiercer', 'M+M': 'magicoverlord',
+      'C+C': 'prophet', 'R+R': 'grandreaper', 'N+N': 'worldsummoner',
+      'K+W': 'bladelord', 'A+K': 'citadel', 'K+M': 'runesovereign',
+      'C+K': 'paladinking', 'K+R': 'abysslord', 'K+N': 'ancientbark',
+      'A+W': 'stormbringer', 'M+W': 'magicbreaker', 'C+W': 'grandtemplar', 'R+W': 'wardancer', 'N+W': 'terraquaker',
+      'A+M': 'cosmiccaller', 'A+C': 'radianteye', 'A+R': 'eclipseranger', 'A+N': 'hurricanearcher',
+      'C+M': 'eldersage', 'M+R': 'archlich', 'M+N': 'gatekeeper',
+      'C+R': 'arbiter', 'C+N': 'lifewarden', 'N+R': 'primalhunter'
     }
   };
 
   // 레벨 시스템 (v0.9): 웨이브 전투 참여 = +1Lv (보스 +2), 성급 합성 폐지
-  var LV_MAX = { 1: 3, 2: 3, 3: 3, 4: 3 };    // 티어별 최대 레벨 — 같은 티어 Max 둘 = 상위 티어 진화
+  var LV_MAX = { 1: 3, 2: 3, 3: 3, 4: 3, 5: 3 }; // 티어별 최대 레벨 — 같은 티어 Max 둘 = 상위 티어 진화
   var LEVELUP = { normal: 1, boss: 2 };        // 웨이브 종료 시 레벨 상승량
 
   // 레벨업권 아이템: 필드 1칸 차지, 유닛에 드래그 = +1Lv 소모 (Max 대상은 스왑만)
@@ -225,7 +265,7 @@
     priceRandT3: 14,             // 랜덤 T3
     priceTicket: 4,              // 레벨업권
     ticketChance: 0.15,          // 슬롯이 레벨업권일 확률
-    sell: { 1: 2, 2: 6, 3: 12, 4: 24, ticket: 2 }, // 판매가 = 티어 고정 (레벨은 공짜라 환급 미가산 — 차익 차단)
+    sell: { 1: 2, 2: 6, 3: 12, 4: 24, 5: 48, ticket: 2 }, // 판매가 = 티어 고정 (레벨은 공짜라 환급 미가산 — 차익 차단)
     reroll: 2,
     income: 4,                   // 웨이브 시작 기본 지급
     startBonus: 4,               // 런 시작 추가 지급 (1웨이브 총 8G)

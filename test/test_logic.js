@@ -51,15 +51,20 @@ eq('스피릿로드 Lv1 (T3 소환)', hpatk('spiritlord', 1), [1025, 103]);
 eq('워로드 Lv3 (n=8)', hpatk('warlord', 3), [3845, 384]);
 eq('불워크 Lv1 (n=9, T4 탱킹)', hpatk('aegis', 1), [9225, 384]);
 eq('컨쿼러 Lv1 (T4 근접딜)', hpatk('ares', 1), [5765, 577]);
-eq('스피릿마스터 Lv3 (n=11, 최상단)', hpatk('gaia', 3), [7785, 778]);
+eq('스피릿마스터 Lv3 (n=11)', hpatk('gaia', 3), [7785, 778]);
+eq('이터널가드 Lv1 (n=12, T5 탱킹)', hpatk('eternalguard', 1), [31140, 1297]);
+eq('게이트키퍼 Lv3 (n=14, 최상단)', hpatk('gatekeeper', 3), [26275, 2627]);
 ok('세인트 HPS 91', L.statsFor('saint', 1).hps === 91);
-ok('전 티어 Lv 상한 3', D.LV_MAX[1] === 3 && D.LV_MAX[2] === 3 && D.LV_MAX[3] === 3 && D.LV_MAX[4] === 3);
-ok('유닛 총 91종 (7+28+28+28)', Object.keys(D.UNITS).length === 91);
+ok('전 티어 Lv 상한 3', [1, 2, 3, 4, 5].every(function (t) { return D.LV_MAX[t] === 3; }));
+ok('유닛 총 119종 (7+28×4)', Object.keys(D.UNITS).length === 119);
 ok('진화표 T2 28종', Object.keys(D.EVOLUTION[2]).length === 28);
 ok('진화표 T3 28종', Object.keys(D.EVOLUTION[3]).length === 28);
 ok('진화표 T4 28종', Object.keys(D.EVOLUTION[4]).length === 28);
-ok('진화표 T4 결과 전부 T4 유닛', Object.keys(D.EVOLUTION[4]).every(function (k) {
-  return D.UNITS[D.EVOLUTION[4][k]] && D.UNITS[D.EVOLUTION[4][k]].tier === 4;
+ok('진화표 T5 28종 (v1.7 완전 체계)', Object.keys(D.EVOLUTION[5]).length === 28);
+ok('진화표 결과 티어 정합 (T4·T5)', [4, 5].every(function (t) {
+  return Object.keys(D.EVOLUTION[t]).every(function (k) {
+    return D.UNITS[D.EVOLUTION[t][k]] && D.UNITS[D.EVOLUTION[t][k]].tier === t;
+  });
 }));
 
 // ---- 2) 진화 규칙 (v0.9: 성급 합성 폐지 — 같은 티어 Max 둘 = 진화만) ----
@@ -70,8 +75,10 @@ eq('T1 Max 동일유닛 = 순혈 진화', L.mergeResult('knight', 3, 'knight', 3
 eq('T2 Max 쌍 = T3 순혈 진화', L.mergeResult('gladiator', 3, 'gladiator', 3), { type: 'evolve', unitId: 'warlord' });
 eq('티어 혼합 Max 무반응', L.mergeResult('knight', 3, 'gladiator', 3), null);
 eq('T3 Max 쌍 = T4 진화 (v1.0)', L.mergeResult('sentinel', 3, 'sentinel', 3), { type: 'evolve', unitId: 'aegis' });
-eq('T4 Max 쌍 무반응(T5 미구현)', L.mergeResult('aegis', 3, 'aegis', 3), null);
-// 클래스 쌍 → T2 전 28종 (매트릭스 v1.6 §2 전수)
+eq('T4 Max 쌍 = T5 진화 (매트릭스 v1.7)', L.mergeResult('aegis', 3, 'aegis', 3), { type: 'evolve', unitId: 'eternalguard' });
+eq('T4 이종 Max 쌍도 진화 (순혈 전용 예외 폐지)', L.mergeResult('bastion', 3, 'oracle', 3), { type: 'evolve', unitId: 'runesovereign' });
+eq('T5 Max 쌍 무반응(T6 없음)', L.mergeResult('eternalguard', 3, 'eternalguard', 3), null);
+// 클래스 쌍 → T2 전 28종 (매트릭스 v1.7 §2 전수)
 var pairs = {
   'knight+knight': 'grandknight', 'warrior+warrior': 'berserker', 'archer+archer': 'hawkeye',
   'mage+mage': 'highmage', 'cleric+cleric': 'bishop', 'rogue+rogue': 'assassin',
@@ -92,21 +99,23 @@ Object.keys(pairs).forEach(function (k) {
   var r2 = L.mergeResult(p[1], 3, p[0], 3); // 순서 무관
   eq('진화(역순) ' + k, r2 && r2.unitId, pairs[k]);
 });
-// T2 Max 조합 → T3 / T3 Max 조합 → T4 전 28쌍 (클래스 대표 순혈 사용)
+// T2→T3 / T3→T4 / T4→T5 전 28쌍 진화 (클래스 대표 순혈 사용)
 (function () {
-  var rep2 = { K: 'grandknight', W: 'berserker', A: 'hawkeye', M: 'highmage',
-               C: 'bishop', R: 'assassin', N: 'highsummoner' };
-  var rep3 = { K: 'sentinel', W: 'warlord', A: 'stormranger', M: 'archmage',
-               C: 'saint', R: 'phantom', N: 'spiritlord' };
-  Object.keys(D.EVOLUTION[3]).forEach(function (key) {
-    var cls = key.split('+');
-    var r = L.mergeResult(rep2[cls[0]], 3, rep2[cls[1]], 3);
-    eq('T3 진화 ' + key, r && r.unitId, D.EVOLUTION[3][key]);
-  });
-  Object.keys(D.EVOLUTION[4]).forEach(function (key) {
-    var cls = key.split('+');
-    var r = L.mergeResult(rep3[cls[0]], 3, rep3[cls[1]], 3);
-    eq('T4 진화 ' + key, r && r.unitId, D.EVOLUTION[4][key]);
+  var reps = {
+    3: { K: 'grandknight', W: 'berserker', A: 'hawkeye', M: 'highmage',
+         C: 'bishop', R: 'assassin', N: 'highsummoner' },
+    4: { K: 'sentinel', W: 'warlord', A: 'stormranger', M: 'archmage',
+         C: 'saint', R: 'phantom', N: 'spiritlord' },
+    5: { K: 'aegis', W: 'ares', A: 'artemis', M: 'hecate',
+         C: 'seraphim', R: 'hades', N: 'gaia' }
+  };
+  [3, 4, 5].forEach(function (t) {
+    var rep = reps[t];
+    Object.keys(D.EVOLUTION[t]).forEach(function (key) {
+      var cls = key.split('+');
+      var r = L.mergeResult(rep[cls[0]], 3, rep[cls[1]], 3);
+      eq('T' + t + ' 진화 ' + key, r && r.unitId, D.EVOLUTION[t][key]);
+    });
   });
 }());
 
@@ -122,6 +131,7 @@ eq('판매가 T1 (Lv 무관)', [L.sellValue('knight', 1), L.sellValue('knight', 
 eq('판매가 T2 (Lv 무관)', [L.sellValue('grandknight', 1), L.sellValue('grandknight', 3)], [6, 6]);
 eq('판매가 T3', L.sellValue('sentinel', 1), 12);
 eq('판매가 T4', L.sellValue('aegis', 1), 24);
+eq('판매가 T5', L.sellValue('eternalguard', 1), 48);
 ok('전 티어 판매가 < 구매가 (차익 차단)',
   D.SHOP.sell[1] < D.SHOP.priceRandT1 + 1 && D.SHOP.sell[2] < D.SHOP.priceRandT2 &&
   D.SHOP.sell[3] < D.SHOP.priceRandT3 && D.SHOP.sell.ticket < D.SHOP.priceTicket);

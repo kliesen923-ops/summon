@@ -65,7 +65,7 @@
   }
 
   // ---- 상점 (설계 §5, v0.5~v0.7) ----
-  var TIER_IDS = { 1: [], 2: [], 3: [], 4: [] }; // T4는 상점 미등장 (진화 전용) — 풀만 유지
+  var TIER_IDS = { 1: [], 2: [], 3: [], 4: [], 5: [] }; // T4·T5는 상점 미등장 (진화 전용) — 풀만 유지
   Object.keys(D.UNITS).forEach(function (id) {
     TIER_IDS[D.UNITS[id].tier].push(id);
   });

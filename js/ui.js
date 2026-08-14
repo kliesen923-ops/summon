@@ -236,8 +236,8 @@
     ctx.fillStyle = cl.color;
     ctx.fill();
     ctx.lineWidth = u.tier >= 2 ? 3 : 1.5;
-    ctx.strokeStyle = u.tier === 4 ? '#d98cff'
-      : (u.tier === 3 ? '#7ef0ff' : (u.tier === 2 ? '#ffd76a' : '#ffffff55'));
+    var TIER_COLORS = { 2: '#ffd76a', 3: '#7ef0ff', 4: '#d98cff', 5: '#ff6b81' };
+    ctx.strokeStyle = TIER_COLORS[u.tier] || '#ffffff55';
     ctx.stroke();
     // 머지 힌트 반짝임
     if (opts.hint) {
