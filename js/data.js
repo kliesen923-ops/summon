@@ -1,7 +1,7 @@
 /* =========================================================
  * 프로젝트 서몬 프로토타입 — data.js
  * 상수 정의: 아키타입 7종, 클래스 7종, 유닛 35종(T1 7 + T2 28), 스킬, 챕터/웨이브
- * 근거 문서: 유닛 스탯 기준표 v0.1 / 조합 매트릭스 v1.5
+ * 근거 문서: 유닛 스탯 기준표 v0.1 / 조합 매트릭스 v1.6
  * ========================================================= */
 (function (global) {
   'use strict';
@@ -51,7 +51,7 @@
     cleric:   { tier: 1, cls: 'C', arch: 'support',  name: '클레릭',  emoji: '✨' },
     rogue:    { tier: 1, cls: 'R', arch: 'assassin', name: '로그',    emoji: '🗡️' },
     summoner: { tier: 1, cls: 'N', arch: 'summon',   name: '서머너',  emoji: '🌿' },
-    // Tier 2 — (조합 매트릭스 v1.5) 순혈 7
+    // Tier 2 — (조합 매트릭스 v1.6) 순혈 7
     grandknight:  { tier: 2, cls: 'K', arch: 'tank',     name: '그랜드나이트', emoji: '🏰' },
     berserker:    { tier: 2, cls: 'W', arch: 'melee',    name: '버서커',       emoji: '🪓' },
     hawkeye:      { tier: 2, cls: 'A', arch: 'ranged',   name: '호크아이',     emoji: '🦅', range: 8 },
@@ -81,7 +81,7 @@
     exorcist:    { tier: 2, cls: 'C', arch: 'support',  name: '엑소시스트',   emoji: '📿' },
     druid:       { tier: 2, cls: 'C', arch: 'support',  name: '드루이드',     emoji: '🍃' },
     hunter:      { tier: 2, cls: 'R', arch: 'assassin', name: '헌터',         emoji: '🐺' },
-    // Tier 3 — 영웅 칭호 (조합 매트릭스 v1.5 §3) — 순혈 7
+    // Tier 3 — 영웅 칭호 (조합 매트릭스 v1.6 §3) — 순혈 7
     sentinel:     { tier: 3, cls: 'K', arch: 'tank',     name: '센티넬',       emoji: '🏯' },
     warlord:      { tier: 3, cls: 'W', arch: 'melee',    name: '워로드',       emoji: '🦾', splash: 1 },
     stormranger:  { tier: 3, cls: 'A', arch: 'ranged',   name: '스톰레인저',   emoji: '🌩️', splash: 1 },
@@ -111,26 +111,27 @@
     inquisitor:   { tier: 3, cls: 'C', arch: 'support',  name: '인퀴지터',     emoji: '⚖️' },
     archdruid:    { tier: 3, cls: 'C', arch: 'support',  name: '아크드루이드', emoji: '🌺' },
     beastmaster:  { tier: 3, cls: 'R', arch: 'assassin', name: '비스트마스터', emoji: '🐗' },
-    // Tier 4 — 전설·신화 (조합 매트릭스 v1.5 §4) — 상점 미등장, 오직 진화로만. 순혈 7
-    aegis:        { tier: 4, cls: 'K', arch: 'tank',     name: '이지스',       emoji: '🏛️' },
-    ares:         { tier: 4, cls: 'W', arch: 'melee',    name: '아레스',       emoji: '💢', splash: 1 },
-    artemis:      { tier: 4, cls: 'A', arch: 'ranged',   name: '아르테미스',   emoji: '🌙', splash: 1 },
-    hecate:       { tier: 4, cls: 'M', arch: 'aoe',      name: '헤카테',       emoji: '🪐', splash: 1 },
-    seraphim:     { tier: 4, cls: 'C', arch: 'support',  name: '세라핌',       emoji: '👼' },
-    hades:        { tier: 4, cls: 'R', arch: 'assassin', name: '하데스',       emoji: '🕳️' },
-    gaia:         { tier: 4, cls: 'N', arch: 'summon',   name: '가이아',       emoji: '🌍' },
+    // Tier 4 — 전설 칭호 (조합 매트릭스 v1.6 §4) — 상점 미등장, 오직 진화로만. 순혈 7
+    // v1.6: 신화 인물·존재 고유명 폐지 → 직업·칭호형 개명 (내부 id는 유지)
+    aegis:        { tier: 4, cls: 'K', arch: 'tank',     name: '불워크',       emoji: '🏛️' },
+    ares:         { tier: 4, cls: 'W', arch: 'melee',    name: '컨쿼러',       emoji: '💢', splash: 1 },
+    artemis:      { tier: 4, cls: 'A', arch: 'ranged',   name: '스카이피어서', emoji: '🌙', splash: 1 },
+    hecate:       { tier: 4, cls: 'M', arch: 'aoe',      name: '소서러킹',     emoji: '🪐', splash: 1 },
+    seraphim:     { tier: 4, cls: 'C', arch: 'support',  name: '아크세인트',   emoji: '👼' },
+    hades:        { tier: 4, cls: 'R', arch: 'assassin', name: '리퍼',         emoji: '🕳️' },
+    gaia:         { tier: 4, cls: 'N', arch: 'summon',   name: '스피릿마스터', emoji: '🌍' },
     // Tier 4 — 이종 21
     swordsaint:   { tier: 4, cls: 'W', arch: 'melee',    name: '소드세인트',   emoji: '⚡' },
     bastion:      { tier: 4, cls: 'K', arch: 'tank',     name: '배스천',       emoji: '🛕', range: 4 },
     arcanelord:   { tier: 4, cls: 'K', arch: 'tank',     name: '아케인로드',   emoji: '🔷' },
     lightbringer: { tier: 4, cls: 'K', arch: 'tank',     name: '라이트브링어', emoji: '🌞' },
     abyssknight:  { tier: 4, cls: 'R', arch: 'melee',    name: '어비스나이트', emoji: '🌘' },
-    colossus:     { tier: 4, cls: 'N', arch: 'tank',     name: '콜로서스',     emoji: '⛰️' },
+    colossus:     { tier: 4, cls: 'N', arch: 'tank',     name: '엘더바크',     emoji: '⛰️' },
     tempest:      { tier: 4, cls: 'W', arch: 'melee',    name: '템페스트',     emoji: '🌊', range: 2 },
     runelord:     { tier: 4, cls: 'W', arch: 'melee',    name: '룬로드',       emoji: '🧨', splash: 1 },
     warsaint:     { tier: 4, cls: 'C', arch: 'melee',    name: '워세인트',     emoji: '🏵️' },
     bloodblade:   { tier: 4, cls: 'R', arch: 'assassin', name: '블러드블레이드', emoji: '🔪' },
-    behemoth:     { tier: 4, cls: 'N', arch: 'melee',    name: '베히모스',     emoji: '🦣', splash: 1 },
+    behemoth:     { tier: 4, cls: 'N', arch: 'melee',    name: '어스퀘이커',   emoji: '🦣', splash: 1 },
     starcaller:   { tier: 4, cls: 'M', arch: 'ranged',   name: '스타콜러',     emoji: '💫', splash: 1 },
     daybreaker:   { tier: 4, cls: 'A', arch: 'ranged',   name: '데이브레이커', emoji: '🌅' },
     nightraven:   { tier: 4, cls: 'A', arch: 'ranged',   name: '나이트레이븐', emoji: '🪶' },

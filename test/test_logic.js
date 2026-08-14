@@ -49,9 +49,9 @@ eq('세인트 Lv1 (T3 지원힐)', hpatk('saint', 1), [1540, 91]);
 eq('팬텀 Lv1 (T3 암살)', hpatk('phantom', 1), [1195, 148]);
 eq('스피릿로드 Lv1 (T3 소환)', hpatk('spiritlord', 1), [1025, 103]);
 eq('워로드 Lv3 (n=8)', hpatk('warlord', 3), [3845, 384]);
-eq('이지스 Lv1 (n=9, T4 탱킹)', hpatk('aegis', 1), [9225, 384]);
-eq('아레스 Lv1 (T4 근접딜)', hpatk('ares', 1), [5765, 577]);
-eq('가이아 Lv3 (n=11, 최상단)', hpatk('gaia', 3), [7785, 778]);
+eq('불워크 Lv1 (n=9, T4 탱킹)', hpatk('aegis', 1), [9225, 384]);
+eq('컨쿼러 Lv1 (T4 근접딜)', hpatk('ares', 1), [5765, 577]);
+eq('스피릿마스터 Lv3 (n=11, 최상단)', hpatk('gaia', 3), [7785, 778]);
 ok('세인트 HPS 91', L.statsFor('saint', 1).hps === 91);
 ok('전 티어 Lv 상한 3', D.LV_MAX[1] === 3 && D.LV_MAX[2] === 3 && D.LV_MAX[3] === 3 && D.LV_MAX[4] === 3);
 ok('유닛 총 91종 (7+28+28+28)', Object.keys(D.UNITS).length === 91);
@@ -71,7 +71,7 @@ eq('T2 Max 쌍 = T3 순혈 진화', L.mergeResult('gladiator', 3, 'gladiator', 3
 eq('티어 혼합 Max 무반응', L.mergeResult('knight', 3, 'gladiator', 3), null);
 eq('T3 Max 쌍 = T4 진화 (v1.0)', L.mergeResult('sentinel', 3, 'sentinel', 3), { type: 'evolve', unitId: 'aegis' });
 eq('T4 Max 쌍 무반응(T5 미구현)', L.mergeResult('aegis', 3, 'aegis', 3), null);
-// 클래스 쌍 → T2 전 28종 (매트릭스 v1.5 §2 전수)
+// 클래스 쌍 → T2 전 28종 (매트릭스 v1.6 §2 전수)
 var pairs = {
   'knight+knight': 'grandknight', 'warrior+warrior': 'berserker', 'archer+archer': 'hawkeye',
   'mage+mage': 'highmage', 'cleric+cleric': 'bishop', 'rogue+rogue': 'assassin',
