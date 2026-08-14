@@ -31,6 +31,7 @@
   function toMain() {
     run = null; drag = null; dropZone = null;
     UI.hideTooltip();
+    UI.hideReward();
     UI.buildMain(progress, startChapter, function () {
       progress = { stars: {} }; save(); toMain();
     });
@@ -232,13 +233,38 @@
         var stars = run.lives; // 남은 목숨 = 별점 (무피해 = ⭐3)
         if ((progress.stars[chId] || 0) < stars) { progress.stars[chId] = stars; save(); }
         UI.showResult(true, run.wave, chapterLabel(), stars);
+      } else if (lu.isBoss) {
+        bossReward(); // 4·8웨이브 보스: 보상 3택1 후 다음 웨이브 (v1.2)
       } else {
         run.wave++;
-        beginPrep(lu.isBoss ? '📈 보스 격파 +2Lv! · ' : '📈 참여 유닛 +1Lv · ');
+        beginPrep('📈 참여 유닛 +1Lv · ');
       }
     } else {
-      loseLife(' (참여 유닛 +' + (lu.isBoss ? 2 : 1) + 'Lv)');
+      loseLife(' (참여 유닛 +1Lv)');
     }
+  }
+
+  // ---- 보스 클리어 보상 3택1 (v1.2): 골드 / 레벨업권 / 목숨 회복 ----
+  function bossReward() {
+    run.phase = 'reward';
+    UI.setButtons(false, false);
+    UI.hideTooltip();
+    UI.showRewardChoice([
+      { key: 'gold', emoji: '💰', title: '+' + D.BOSS_REWARD.gold + 'G',
+        desc: '군자금 확보', enabled: true },
+      { key: 'ticket', emoji: '🎫', title: '레벨업권',
+        desc: '보드 1칸 차지', enabled: run.board.length < BOARD_MAX },
+      { key: 'life', emoji: '❤️', title: '목숨 +1',
+        desc: '잃은 목숨 회복', enabled: run.lives < D.LIVES }
+    ], function (key) {
+      if (!run) return;
+      var msg = '';
+      if (key === 'gold') { run.gold += D.BOSS_REWARD.gold; msg = '💰 +' + D.BOSS_REWARD.gold + 'G'; }
+      else if (key === 'ticket') { placeTicket(); msg = '🎫 레벨업권 획득'; }
+      else if (key === 'life') { run.lives = Math.min(D.LIVES, run.lives + 1); UI.setLives(run.lives); msg = '❤️ 목숨 회복'; }
+      run.wave++;
+      beginPrep('👹 ' + msg + ' · ');
+    });
   }
 
   // ---- 진화 힌트 (같은 티어 Max 쌍, 준비 단계에만) ----
@@ -431,6 +457,11 @@
     startChapter(0);
     setInterval(function () {
       if (!run) return;
+      if (run.phase === 'reward') {
+        var rw = document.querySelector('#reward-cards .rw-card:not(:disabled)');
+        if (rw) rw.click();
+        return;
+      }
       if (run.phase === 'prep') {
         // 보유 레벨업권은 첫 비Max 유닛에 즉시 사용
         var tk = run.board.filter(isTicket)[0];

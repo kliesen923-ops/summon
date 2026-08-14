@@ -126,6 +126,24 @@
     });
   }
   function clearShop() { document.getElementById('draft-cards').innerHTML = ''; }
+
+  // ---- 보스 보상 3택1 (v1.2) ----
+  function showRewardChoice(opts, onPick) {
+    var row = document.getElementById('reward-cards');
+    row.innerHTML = '';
+    opts.forEach(function (o) {
+      var btn = document.createElement('button');
+      btn.className = 'rw-card';
+      btn.disabled = !o.enabled;
+      btn.innerHTML = '<div class="em">' + o.emoji + '</div>' +
+        '<div class="ti">' + o.title + '</div>' +
+        '<div class="de">' + o.desc + '</div>';
+      if (o.enabled) btn.onclick = function () { hideReward(); onPick(o.key); };
+      row.appendChild(btn);
+    });
+    document.getElementById('reward-overlay').classList.remove('hidden');
+  }
+  function hideReward() { document.getElementById('reward-overlay').classList.add('hidden'); }
   function setButtons(showStart, showReroll) {
     document.getElementById('btn-start').classList.toggle('hidden', !showStart);
     document.getElementById('btn-reroll').classList.toggle('hidden', !showReroll);
@@ -597,6 +615,7 @@
     showScreen: showScreen, buildMain: buildMain,
     setPanelMsg: setPanelMsg, setTopbar: setTopbar, setGold: setGold, setLives: setLives,
     showShop: showShop, clearShop: clearShop,
+    showRewardChoice: showRewardChoice, hideReward: hideReward,
     setButtons: setButtons, setStartLabel: setStartLabel,
     showUnitTooltip: showUnitTooltip, showTicketTooltip: showTicketTooltip, hideTooltip: hideTooltip,
     showResult: showResult,

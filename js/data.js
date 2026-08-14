@@ -218,9 +218,12 @@
     }
   };
 
-  // 레벨 시스템 (v0.9): 웨이브 전투 참여 = +1Lv (보스 +2), 성급 합성 폐지
+  // 레벨 시스템 (v0.9): 웨이브 전투 참여 = +1Lv, 성급 합성 폐지
   var LV_MAX = { 1: 3, 2: 3, 3: 3, 4: 3, 5: 3 }; // 티어별 최대 레벨 — 같은 티어 Max 둘 = 상위 티어 진화
-  var LEVELUP = { normal: 1, boss: 2 };        // 웨이브 종료 시 레벨 상승량
+  var LEVELUP = { normal: 1, boss: 1 };        // 웨이브 종료 시 레벨 상승량 (v1.2: 보스 +2 → +1, 보상 선택으로 대체)
+
+  // 보스 클리어 보상 3택1 (v1.2): 골드 / 레벨업권 / 목숨 회복 — 4·8웨이브 보스에만 (12웨이브 = 챕터 클리어)
+  var BOSS_REWARD = { gold: 6 };
 
   // 레벨업권 아이템: 필드 1칸 차지, 유닛에 드래그 = +1Lv 소모 (Max 대상은 스왑만)
   var TICKET = { name: '레벨업권', emoji: '🎫', desc: '유닛에 겹치면 +1레벨 (Max 유닛에는 사용 불가)' };
@@ -310,7 +313,7 @@
 
   // ---- 챕터 정의: 9챕터 × 12웨이브, 4웨이브마다 보스 (4·8·12) ----
   // 난이도 = CHAPTER_MULT_GROWTH^(챕터-1) 기하 곡선. 물량형/정예형 교대.
-  var CHAPTER_MULT_GROWTH = 1.38; // v1.0: 모디파이어가 후반 난이도를 분담 — 배율 완화
+  var CHAPTER_MULT_GROWTH = 1.40; // v1.2: 보스 보상(목숨 회복)만큼 소폭 상향 (1.38 → 1.40)
   var CHAPTER_NAMES = [
     '초원의 침공', '강철 요새', '어둠의 숲',
     '사막의 유적', '얼어붙은 협곡', '화산 지대',
@@ -348,6 +351,7 @@
   global.DATA = {
     GEOM: GEOM, ARCHETYPES: ARCHETYPES, CLASSES: CLASSES, UNITS: UNITS,
     EVOLUTION: EVOLUTION, LV_MAX: LV_MAX, LEVELUP: LEVELUP, TICKET: TICKET,
+    BOSS_REWARD: BOSS_REWARD,
     SKILLS: SKILLS, SKILL_VALS: SKILL_VALS,
     EXECUTE: EXECUTE, SUMMON: SUMMON,
     SHOP: SHOP, ENEMY: ENEMY, MODIFIERS: MODIFIERS, CHAPTERS: CHAPTERS,

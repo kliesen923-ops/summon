@@ -95,6 +95,21 @@
     gap: 0 6px; font-size: 10px; color: #aab2c8; margin-top: 2px; }
   .hidden { display: none !important; }
 
+  /* ---- 보스 보상 선택 (v1.2) ---- */
+  #reward-overlay { position: absolute; inset: 0; z-index: 40; background: #14161ccc;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+  #reward-overlay .rw-title { color: #f0e6c8; font-size: 19px; font-weight: bold;
+    text-shadow: 0 2px 6px #000; }
+  #reward-cards { display: flex; gap: 12px; }
+  .rw-card { width: 108px; height: 140px; border-radius: 14px; border: 2px solid #d8b45a;
+    background: #2b3147; cursor: pointer; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 6px; transition: transform .08s; }
+  .rw-card:not(:disabled):hover { transform: translateY(-5px); background: #343c58; }
+  .rw-card:disabled { opacity: 0.3; cursor: default; border-color: #46506e; }
+  .rw-card .em { font-size: 34px; line-height: 1; }
+  .rw-card .ti { color: #ffd76a; font-size: 14px; font-weight: bold; }
+  .rw-card .de { color: #8b93a7; font-size: 10px; padding: 0 6px; text-align: center; }
+
   /* ---- 결과 화면 ---- */
   #screen-result { background: #171a22ee; display: none; align-items: center;
     justify-content: center; flex-direction: column; gap: 14px; text-align: center; }
@@ -133,6 +148,11 @@
       <div id="result-title"></div>
       <div id="result-sub"></div>
       <button id="btn-to-main" class="pbtn primary">메인으로</button>
+    </div>
+
+    <div id="reward-overlay" class="hidden">
+      <div class="rw-title">👹 보스 격파! 보상 선택</div>
+      <div id="reward-cards"></div>
     </div>
 
     <div id="tooltip" class="hidden"></div>

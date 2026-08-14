@@ -119,12 +119,12 @@ Object.keys(pairs).forEach(function (k) {
   });
 }());
 
-// ---- 2.3) 웨이브 레벨업 (참여 +1Lv, 보스 +2Lv, Max 상한) ----
+// ---- 2.3) 웨이브 레벨업 (참여 +1Lv, Max 상한 — v1.2: 보스 +2 → +1) ----
 eq('일반 웨이브 +1Lv', L.levelAfterWave('knight', 1, false), 2);
-eq('보스 웨이브 +2Lv', L.levelAfterWave('knight', 1, true), 3);
+eq('보스 웨이브도 +1Lv (v1.2 하향)', L.levelAfterWave('knight', 1, true), 2);
 eq('Max에서 정지', L.levelAfterWave('knight', 3, false), 3);
-eq('보스 +2가 상한 초과 시 절사', L.levelAfterWave('grandknight', 2, true), 3);
-eq('T3도 동일 상한', L.levelAfterWave('sentinel', 2, true), 3);
+eq('상한 절사', L.levelAfterWave('grandknight', 2, true), 3);
+ok('보스 보상 골드 정의', D.BOSS_REWARD.gold > 0);
 
 // ---- 2.5) 판매가 (v0.9: 티어 고정 — 레벨은 공짜라 환급 미가산) ----
 eq('판매가 T1 (Lv 무관)', [L.sellValue('knight', 1), L.sellValue('knight', 3)], [2, 2]);
@@ -302,10 +302,16 @@ function runChapter(chIdx, seed) {
       var st = B.createBattle(makeRoster(army), L.makeWave(chIdx, w, rng), Math.floor(rng() * 1e9));
       res = 'ongoing';
       while (res === 'ongoing') res = B.step(st, 1 / 30);
-      // 전투 참여 = 승패 무관 레벨업 (보스 +2), 이후 Max 쌍 자동 진화
+      // 전투 참여 = 승패 무관 레벨업, 이후 Max 쌍 자동 진화
       var isBoss = w % D.BOSS_EVERY === 0;
       army.forEach(function (u) { u.lv = L.levelAfterWave(u.unitId, u.lv, isBoss); });
       tryMergesArmy(army);
+      // 보스 보상 3택1 (v1.2, 4·8웨이브): 목숨 회복 > 레벨업권 > 골드 순 그리디
+      if (res === 'win' && isBoss && w < D.WAVES_PER_CHAPTER) {
+        if (lives < D.LIVES) lives++;
+        else if (!useTicket(army)) gold += D.BOSS_REWARD.gold;
+        tryMergesArmy(army);
+      }
     }
     if (res === 'lose') {
       lives--;
