@@ -246,12 +246,10 @@
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
     ctx.fillText(u.emoji, x, y + 1);
-    if (lv > 0) { // 레벨 = ★ 핍 (Max = 티어 상한)
+    if (lv > 0) { // 레벨 텍스트 (Max = 주황색)
       ctx.font = 'bold ' + (S < 45 ? 9 : 11) + 'px sans-serif';
       ctx.fillStyle = lv >= D.LV_MAX[u.tier] ? '#ffb046' : '#ffd76a';
-      var pips = '';
-      for (var i = 0; i < lv; i++) pips += '★';
-      ctx.fillText(pips, x, y - S / 2 - 9);
+      ctx.fillText('Lv.' + lv, x, y - S / 2 - 9);
     }
     // HP/마나 바 (전투 중)
     if (opts.hpFrac !== undefined) {
