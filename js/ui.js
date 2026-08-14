@@ -104,13 +104,21 @@
         ev.stopPropagation();
         onToggleLock(i);
       };
-      if (slot.kind === 'unit') { // 확정 카드 호버 → 스탯·스킬 툴팁 (패널 위 고정 위치)
-        el.onmouseenter = function () { showUnitTooltip(slot.unitId, 1, 202, 552); };
-        el.onmouseleave = hideTooltip;
+      // 카드 호버 → 해당 카드 바로 위에 툴팁 (카드 i 중심 x = 59 + 96i)
+      var cardX = 59 + 96 * i;
+      if (slot.kind === 'unit') { // 확정 카드 = 스탯·스킬
+        el.onmouseenter = function () { showUnitTooltip(slot.unitId, 1, cardX, 552); };
       } else if (slot.kind === 'ticket') {
-        el.onmouseenter = function () { showTicketTooltip(202, 552); };
-        el.onmouseleave = hideTooltip;
+        el.onmouseenter = function () {
+          showInfoTooltip(D.TICKET.emoji + ' ' + D.TICKET.name, D.TICKET.desc, cardX, 552);
+        };
+      } else { // 랜덤 카드 = 규칙 설명
+        el.onmouseenter = function () {
+          showInfoTooltip('❓ 랜덤 유닛', 'Tier ' + slot.tier +
+            ' 유닛 중 하나가 구매 시 무작위로 확정. 같은 티어 확정 카드보다 저렴.', cardX, 552);
+        };
       }
+      el.onmouseleave = hideTooltip;
       row.appendChild(el);
     });
   }
@@ -151,13 +159,17 @@
     el.classList.remove('hidden');
     placeTooltip(el, x, y);
   }
-  function showTicketTooltip(x, y) {
+  // 범용 설명 박스 (레벨업권·랜덤 카드 등 비유닛 대상)
+  function showInfoTooltip(title, desc, x, y) {
     var el = document.getElementById('tooltip');
     el.innerHTML =
-      '<div class="tt-name">' + D.TICKET.emoji + ' ' + D.TICKET.name + '</div>' +
-      '<div class="tt-skill">' + D.TICKET.desc + '</div>';
+      '<div class="tt-name">' + title + '</div>' +
+      '<div class="tt-skill">' + desc + '</div>';
     el.classList.remove('hidden');
     placeTooltip(el, x, y);
+  }
+  function showTicketTooltip(x, y) {
+    showInfoTooltip(D.TICKET.emoji + ' ' + D.TICKET.name, D.TICKET.desc, x, y);
   }
   function placeTooltip(el, x, y) {
     var w = 188, h = el.offsetHeight;
