@@ -51,7 +51,7 @@ eq('스피릿로드 Lv1 (T3 소환)', hpatk('spiritlord', 1), [1025, 103]);
 eq('워로드 Lv3 (n=8)', hpatk('warlord', 3), [3845, 384]);
 eq('불워크 Lv1 (n=9, T4 탱킹)', hpatk('aegis', 1), [9225, 384]);
 eq('컨쿼러 Lv1 (T4 근접딜)', hpatk('ares', 1), [5765, 577]);
-eq('스피릿마스터 Lv3 (n=11)', hpatk('gaia', 3), [7785, 778]);
+eq('스피릿소버린 Lv3 (n=11)', hpatk('gaia', 3), [7785, 778]);
 eq('이터널가드 Lv1 (n=12, T5 탱킹)', hpatk('eternalguard', 1), [31140, 1297]);
 eq('게이트키퍼 Lv3 (n=14, 최상단)', hpatk('gatekeeper', 3), [26275, 2627]);
 ok('세인트 HPS 91', L.statsFor('saint', 1).hps === 91);
@@ -75,10 +75,10 @@ eq('T1 Max 동일유닛 = 순혈 진화', L.mergeResult('knight', 3, 'knight', 3
 eq('T2 Max 쌍 = T3 순혈 진화', L.mergeResult('gladiator', 3, 'gladiator', 3), { type: 'evolve', unitId: 'warlord' });
 eq('티어 혼합 Max 무반응', L.mergeResult('knight', 3, 'gladiator', 3), null);
 eq('T3 Max 쌍 = T4 진화 (v1.0)', L.mergeResult('sentinel', 3, 'sentinel', 3), { type: 'evolve', unitId: 'aegis' });
-eq('T4 Max 쌍 = T5 진화 (매트릭스 v1.7)', L.mergeResult('aegis', 3, 'aegis', 3), { type: 'evolve', unitId: 'eternalguard' });
+eq('T4 Max 쌍 = T5 진화 (매트릭스 v1.8)', L.mergeResult('aegis', 3, 'aegis', 3), { type: 'evolve', unitId: 'eternalguard' });
 eq('T4 이종 Max 쌍도 진화 (순혈 전용 예외 폐지)', L.mergeResult('bastion', 3, 'oracle', 3), { type: 'evolve', unitId: 'runesovereign' });
 eq('T5 Max 쌍 무반응(T6 없음)', L.mergeResult('eternalguard', 3, 'eternalguard', 3), null);
-// 클래스 쌍 → T2 전 28종 (매트릭스 v1.7 §2 전수)
+// 클래스 쌍 → T2 전 28종 (매트릭스 v1.8 §2 전수)
 var pairs = {
   'knight+knight': 'grandknight', 'warrior+warrior': 'berserker', 'archer+archer': 'hawkeye',
   'mage+mage': 'highmage', 'cleric+cleric': 'bishop', 'rogue+rogue': 'assassin',

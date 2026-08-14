@@ -1,7 +1,7 @@
 /* =========================================================
  * 프로젝트 서몬 프로토타입 — data.js
  * 상수 정의: 아키타입 7종, 클래스 7종, 유닛 35종(T1 7 + T2 28), 스킬, 챕터/웨이브
- * 근거 문서: 유닛 스탯 기준표 v0.1 / 조합 매트릭스 v1.7
+ * 근거 문서: 유닛 스탯 기준표 v0.1 / 조합 매트릭스 v1.8
  * ========================================================= */
 (function (global) {
   'use strict';
@@ -51,7 +51,7 @@
     cleric:   { tier: 1, cls: 'C', arch: 'support',  name: '클레릭',  emoji: '✨' },
     rogue:    { tier: 1, cls: 'R', arch: 'assassin', name: '로그',    emoji: '🗡️' },
     summoner: { tier: 1, cls: 'N', arch: 'summon',   name: '서머너',  emoji: '🌿' },
-    // Tier 2 — (조합 매트릭스 v1.7) 순혈 7
+    // Tier 2 — (조합 매트릭스 v1.8) 순혈 7
     grandknight:  { tier: 2, cls: 'K', arch: 'tank',     name: '그랜드나이트', emoji: '🏰' },
     berserker:    { tier: 2, cls: 'W', arch: 'melee',    name: '버서커',       emoji: '🪓' },
     hawkeye:      { tier: 2, cls: 'A', arch: 'ranged',   name: '호크아이',     emoji: '🦅', range: 8 },
@@ -81,7 +81,7 @@
     exorcist:    { tier: 2, cls: 'C', arch: 'support',  name: '엑소시스트',   emoji: '📿' },
     druid:       { tier: 2, cls: 'C', arch: 'support',  name: '드루이드',     emoji: '🍃' },
     hunter:      { tier: 2, cls: 'R', arch: 'assassin', name: '헌터',         emoji: '🐺' },
-    // Tier 3 — 영웅 칭호 (조합 매트릭스 v1.7 §3) — 순혈 7
+    // Tier 3 — 영웅 칭호 (조합 매트릭스 v1.8 §3) — 순혈 7
     sentinel:     { tier: 3, cls: 'K', arch: 'tank',     name: '센티넬',       emoji: '🏯' },
     warlord:      { tier: 3, cls: 'W', arch: 'melee',    name: '워로드',       emoji: '🦾', splash: 1 },
     stormranger:  { tier: 3, cls: 'A', arch: 'ranged',   name: '스톰레인저',   emoji: '🌩️', splash: 1 },
@@ -111,7 +111,7 @@
     inquisitor:   { tier: 3, cls: 'C', arch: 'support',  name: '인퀴지터',     emoji: '⚖️' },
     archdruid:    { tier: 3, cls: 'C', arch: 'support',  name: '아크드루이드', emoji: '🌺' },
     beastmaster:  { tier: 3, cls: 'R', arch: 'assassin', name: '비스트마스터', emoji: '🐗' },
-    // Tier 4 — 전설 칭호 (조합 매트릭스 v1.7 §4) — 상점 미등장, 오직 진화로만. 순혈 7
+    // Tier 4 — 전설 칭호 (조합 매트릭스 v1.8 §4) — 상점 미등장, 오직 진화로만. 순혈 7
     // v1.6: 신화 인물·존재 고유명 폐지 → 직업·칭호형 개명 (내부 id는 유지)
     aegis:        { tier: 4, cls: 'K', arch: 'tank',     name: '불워크',       emoji: '🏛️' },
     ares:         { tier: 4, cls: 'W', arch: 'melee',    name: '컨쿼러',       emoji: '💢', splash: 1 },
@@ -119,7 +119,7 @@
     hecate:       { tier: 4, cls: 'M', arch: 'aoe',      name: '소서러킹',     emoji: '🪐', splash: 1 },
     seraphim:     { tier: 4, cls: 'C', arch: 'support',  name: '아크세인트',   emoji: '👼' },
     hades:        { tier: 4, cls: 'R', arch: 'assassin', name: '리퍼',         emoji: '🕳️' },
-    gaia:         { tier: 4, cls: 'N', arch: 'summon',   name: '스피릿마스터', emoji: '🌍' },
+    gaia:         { tier: 4, cls: 'N', arch: 'summon',   name: '스피릿소버린', emoji: '🌍' },
     // Tier 4 — 이종 21
     swordsaint:   { tier: 4, cls: 'W', arch: 'melee',    name: '소드세인트',   emoji: '⚡' },
     bastion:      { tier: 4, cls: 'K', arch: 'tank',     name: '배스천',       emoji: '🛕', range: 4 },
@@ -129,7 +129,7 @@
     colossus:     { tier: 4, cls: 'N', arch: 'tank',     name: '엘더바크',     emoji: '⛰️' },
     tempest:      { tier: 4, cls: 'W', arch: 'melee',    name: '템페스트',     emoji: '🌊', range: 2 },
     runelord:     { tier: 4, cls: 'W', arch: 'melee',    name: '룬로드',       emoji: '🧨', splash: 1 },
-    warsaint:     { tier: 4, cls: 'C', arch: 'melee',    name: '워세인트',     emoji: '🏵️' },
+    warsaint:     { tier: 4, cls: 'C', arch: 'melee',    name: '그랜드템플러', emoji: '🏵️' },
     bloodblade:   { tier: 4, cls: 'R', arch: 'assassin', name: '블러드블레이드', emoji: '🔪' },
     behemoth:     { tier: 4, cls: 'N', arch: 'melee',    name: '어스퀘이커',   emoji: '🦣', splash: 1 },
     starcaller:   { tier: 4, cls: 'M', arch: 'ranged',   name: '스타콜러',     emoji: '💫', splash: 1 },
@@ -142,12 +142,12 @@
     judgment:     { tier: 4, cls: 'C', arch: 'support',  name: '저지먼트',     emoji: '🔔' },
     lifegiver:    { tier: 4, cls: 'C', arch: 'support',  name: '라이프기버',   emoji: '🌸' },
     beastking:    { tier: 4, cls: 'R', arch: 'assassin', name: '비스트킹',     emoji: '🦁' },
-    // Tier 5 — 초월 칭호 (조합 매트릭스 v1.7 §5) — 28종 완전 체계, 진화 전용. 순혈 7
+    // Tier 5 — 초월 칭호 (조합 매트릭스 v1.8 §5) — 28종 완전 체계, 진화 전용. 순혈 7
     eternalguard:   { tier: 5, cls: 'K', arch: 'tank',     name: '이터널가드',     emoji: '🏔️' },
     waremperor:     { tier: 5, cls: 'W', arch: 'melee',    name: '워엠퍼러',       emoji: '👑', splash: 1 },
     starpiercer:    { tier: 5, cls: 'A', arch: 'ranged',   name: '스타피어서',     emoji: '💠', splash: 1 },
     magicoverlord:  { tier: 5, cls: 'M', arch: 'aoe',      name: '매직오버로드',   emoji: '♾️', splash: 1 },
-    prophet:        { tier: 5, cls: 'C', arch: 'support',  name: '프로핏',         emoji: '🕊️' },
+    prophet:        { tier: 5, cls: 'C', arch: 'support',  name: '하이어로펀트',   emoji: '🕊️' },
     grandreaper:    { tier: 5, cls: 'R', arch: 'assassin', name: '그랜드리퍼',     emoji: '🪦' },
     worldsummoner:  { tier: 5, cls: 'N', arch: 'summon',   name: '월드서머너',     emoji: '🌐' },
     // Tier 5 — 이종 21
@@ -159,14 +159,14 @@
     ancientbark:    { tier: 5, cls: 'N', arch: 'tank',     name: '에인션트바크',   emoji: '🌲' },
     stormbringer:   { tier: 5, cls: 'W', arch: 'melee',    name: '스톰브링어',     emoji: '⛈️', range: 2 },
     magicbreaker:   { tier: 5, cls: 'W', arch: 'melee',    name: '매직브레이커',   emoji: '⚒️', splash: 1 },
-    grandtemplar:   { tier: 5, cls: 'C', arch: 'melee',    name: '그랜드템플러',   emoji: '💒' },
+    grandtemplar:   { tier: 5, cls: 'C', arch: 'melee',    name: '워세인트',       emoji: '💒' },
     wardancer:      { tier: 5, cls: 'R', arch: 'assassin', name: '워댄서',         emoji: '🎭' },
     terraquaker:    { tier: 5, cls: 'N', arch: 'melee',    name: '테라퀘이커',     emoji: '🪨', splash: 1 },
     cosmiccaller:   { tier: 5, cls: 'M', arch: 'ranged',   name: '코스믹콜러',     emoji: '🔭', splash: 1 },
     radianteye:     { tier: 5, cls: 'A', arch: 'ranged',   name: '레디언트아이',   emoji: '🌄' },
     eclipseranger:  { tier: 5, cls: 'A', arch: 'ranged',   name: '이클립스레인저', emoji: '🌑' },
     hurricanearcher:{ tier: 5, cls: 'A', arch: 'ranged',   name: '허리케인아처',   emoji: '🌬️', splash: 1 },
-    eldersage:      { tier: 5, cls: 'M', arch: 'aoe',      name: '엘더세이지',     emoji: '📚' },
+    eldersage:      { tier: 5, cls: 'M', arch: 'aoe',      name: '프라임세이지',   emoji: '📚' },
     archlich:       { tier: 5, cls: 'M', arch: 'aoe',      name: '아크리치',       emoji: '🦴' },
     gatekeeper:     { tier: 5, cls: 'N', arch: 'summon',   name: '게이트키퍼',     emoji: '🚪' },
     arbiter:        { tier: 5, cls: 'C', arch: 'support',  name: '아비터',         emoji: '♎' },
