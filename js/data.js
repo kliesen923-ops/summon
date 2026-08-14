@@ -110,7 +110,37 @@
     grandsummoner:{ tier: 3, cls: 'N', arch: 'summon',   name: '그랜드서머너', emoji: '🎇' },
     inquisitor:   { tier: 3, cls: 'C', arch: 'support',  name: '인퀴지터',     emoji: '⚖️' },
     archdruid:    { tier: 3, cls: 'C', arch: 'support',  name: '아크드루이드', emoji: '🌺' },
-    beastmaster:  { tier: 3, cls: 'R', arch: 'assassin', name: '비스트마스터', emoji: '🐗' }
+    beastmaster:  { tier: 3, cls: 'R', arch: 'assassin', name: '비스트마스터', emoji: '🐗' },
+    // Tier 4 — 전설·신화 (조합 매트릭스 v1.5 §4) — 상점 미등장, 오직 진화로만. 순혈 7
+    aegis:        { tier: 4, cls: 'K', arch: 'tank',     name: '이지스',       emoji: '🏛️' },
+    ares:         { tier: 4, cls: 'W', arch: 'melee',    name: '아레스',       emoji: '💢', splash: 1 },
+    artemis:      { tier: 4, cls: 'A', arch: 'ranged',   name: '아르테미스',   emoji: '🌙', splash: 1 },
+    hecate:       { tier: 4, cls: 'M', arch: 'aoe',      name: '헤카테',       emoji: '🪐', splash: 1 },
+    seraphim:     { tier: 4, cls: 'C', arch: 'support',  name: '세라핌',       emoji: '👼' },
+    hades:        { tier: 4, cls: 'R', arch: 'assassin', name: '하데스',       emoji: '🕳️' },
+    gaia:         { tier: 4, cls: 'N', arch: 'summon',   name: '가이아',       emoji: '🌍' },
+    // Tier 4 — 이종 21
+    swordsaint:   { tier: 4, cls: 'W', arch: 'melee',    name: '소드세인트',   emoji: '⚡' },
+    bastion:      { tier: 4, cls: 'K', arch: 'tank',     name: '배스천',       emoji: '🛕', range: 4 },
+    arcanelord:   { tier: 4, cls: 'K', arch: 'tank',     name: '아케인로드',   emoji: '🔷' },
+    lightbringer: { tier: 4, cls: 'K', arch: 'tank',     name: '라이트브링어', emoji: '🌞' },
+    abyssknight:  { tier: 4, cls: 'R', arch: 'melee',    name: '어비스나이트', emoji: '🌘' },
+    colossus:     { tier: 4, cls: 'N', arch: 'tank',     name: '콜로서스',     emoji: '⛰️' },
+    tempest:      { tier: 4, cls: 'W', arch: 'melee',    name: '템페스트',     emoji: '🌊', range: 2 },
+    runelord:     { tier: 4, cls: 'W', arch: 'melee',    name: '룬로드',       emoji: '🧨', splash: 1 },
+    warsaint:     { tier: 4, cls: 'C', arch: 'melee',    name: '워세인트',     emoji: '🏵️' },
+    bloodblade:   { tier: 4, cls: 'R', arch: 'assassin', name: '블러드블레이드', emoji: '🔪' },
+    behemoth:     { tier: 4, cls: 'N', arch: 'melee',    name: '베히모스',     emoji: '🦣', splash: 1 },
+    starcaller:   { tier: 4, cls: 'M', arch: 'ranged',   name: '스타콜러',     emoji: '💫', splash: 1 },
+    daybreaker:   { tier: 4, cls: 'A', arch: 'ranged',   name: '데이브레이커', emoji: '🌅' },
+    nightraven:   { tier: 4, cls: 'A', arch: 'ranged',   name: '나이트레이븐', emoji: '🪶' },
+    cyclone:      { tier: 4, cls: 'A', arch: 'ranged',   name: '사이클론',     emoji: '🍥', splash: 1 },
+    oracle:       { tier: 4, cls: 'M', arch: 'aoe',      name: '오라클',       emoji: '🎴' },
+    lich:         { tier: 4, cls: 'M', arch: 'aoe',      name: '리치',         emoji: '☠️' },
+    archsummoner: { tier: 4, cls: 'N', arch: 'summon',   name: '아크서머너',   emoji: '🎆' },
+    judgment:     { tier: 4, cls: 'C', arch: 'support',  name: '저지먼트',     emoji: '🔔' },
+    lifegiver:    { tier: 4, cls: 'C', arch: 'support',  name: '라이프기버',   emoji: '🌸' },
+    beastking:    { tier: 4, cls: 'R', arch: 'assassin', name: '비스트킹',     emoji: '🦁' }
   };
 
   // ---- 진화표: 결과 티어 → (클래스 쌍 정렬 키 → 유닛 id) — 혈통 배정 규칙 전 티어 공통 ----
@@ -134,11 +164,21 @@
       'A+M': 'arcanearcher', 'A+C': 'deadeye', 'A+R': 'shadowranger', 'A+N': 'windwalker',
       'C+M': 'grandsage', 'M+R': 'necromancer', 'M+N': 'grandsummoner',
       'C+R': 'inquisitor', 'C+N': 'archdruid', 'N+R': 'beastmaster'
+    },
+    4: {
+      'K+K': 'aegis', 'W+W': 'ares', 'A+A': 'artemis', 'M+M': 'hecate',
+      'C+C': 'seraphim', 'R+R': 'hades', 'N+N': 'gaia',
+      'K+W': 'swordsaint', 'A+K': 'bastion', 'K+M': 'arcanelord',
+      'C+K': 'lightbringer', 'K+R': 'abyssknight', 'K+N': 'colossus',
+      'A+W': 'tempest', 'M+W': 'runelord', 'C+W': 'warsaint', 'R+W': 'bloodblade', 'N+W': 'behemoth',
+      'A+M': 'starcaller', 'A+C': 'daybreaker', 'A+R': 'nightraven', 'A+N': 'cyclone',
+      'C+M': 'oracle', 'M+R': 'lich', 'M+N': 'archsummoner',
+      'C+R': 'judgment', 'C+N': 'lifegiver', 'N+R': 'beastking'
     }
   };
 
   // 레벨 시스템 (v0.9): 웨이브 전투 참여 = +1Lv (보스 +2), 성급 합성 폐지
-  var LV_MAX = { 1: 3, 2: 3, 3: 3 };          // 티어별 최대 레벨 — 같은 티어 Max 둘 = 상위 티어 진화
+  var LV_MAX = { 1: 3, 2: 3, 3: 3, 4: 3 };    // 티어별 최대 레벨 — 같은 티어 Max 둘 = 상위 티어 진화
   var LEVELUP = { normal: 1, boss: 2 };        // 웨이브 종료 시 레벨 상승량
 
   // 레벨업권 아이템: 필드 1칸 차지, 유닛에 드래그 = +1Lv 소모 (Max 대상은 스왑만)
@@ -184,7 +224,7 @@
     priceRandT3: 14,             // 랜덤 T3
     priceTicket: 4,              // 레벨업권
     ticketChance: 0.15,          // 슬롯이 레벨업권일 확률
-    sell: { 1: 2, 2: 6, 3: 12, ticket: 2 }, // 판매가 = 티어 고정 (레벨은 공짜라 환급 미가산 — 차익 차단)
+    sell: { 1: 2, 2: 6, 3: 12, 4: 24, ticket: 2 }, // 판매가 = 티어 고정 (레벨은 공짜라 환급 미가산 — 차익 차단)
     reroll: 2,
     income: 4,                   // 웨이브 시작 기본 지급
     startBonus: 4,               // 런 시작 추가 지급 (1웨이브 총 8G)
@@ -214,16 +254,32 @@
     MELEE_RANGE: 42,
     BOSS_HP_MULT: 1.6,
     BOSS_MINIONS: 4,
-    TIMEOUT: 120
+    OVERTIME: 45,   // 초과 시 전장 광폭화: 전원 공속·이속 ×2 (TFT식 루즈 방지, v1.0)
+    TIMEOUT: 90     // 광폭화로도 결판이 안 나면 패배
+  };
+
+  // ---- 적 모디파이어 (v1.0): 챕터별 적 변형 — 수치는 봇 시뮬로 튜닝 ----
+  var MODIFIERS = {
+    swift:  { name: '신속',   icon: '💨', speedMult: 1.5 },   // 이동 속도 +50%
+    armor:  { name: '방어',   icon: '🛡', dmgTaken: 0.75 },   // 받는 피해 -25%
+    regen:  { name: '재생',   icon: '💚', regenPct: 0.009 },  // 초당 최대 체력 0.9% 회복
+    ranged: { name: '원거리', icon: '🏹', rangeCells: 2.5 },  // 원거리 공격 (기본은 근접)
+    rage:   { name: '광포',   icon: '💢', asMult: 1.35 }      // 공격 속도 +35%
   };
 
   // ---- 챕터 정의: 9챕터 × 12웨이브, 4웨이브마다 보스 (4·8·12) ----
   // 난이도 = CHAPTER_MULT_GROWTH^(챕터-1) 기하 곡선. 물량형/정예형 교대.
-  var CHAPTER_MULT_GROWTH = 1.45;
+  var CHAPTER_MULT_GROWTH = 1.38; // v1.0: 모디파이어가 후반 난이도를 분담 — 배율 완화
   var CHAPTER_NAMES = [
     '초원의 침공', '강철 요새', '어둠의 숲',
     '사막의 유적', '얼어붙은 협곡', '화산 지대',
     '폐허의 도시', '심연의 관문', '근원의 옥좌'
+  ];
+  // 챕터별 적 모디파이어 (v1.0): 후반 챕터일수록 중첩
+  var CHAPTER_MODS = [
+    [], ['armor'], ['swift'],
+    ['ranged'], ['regen'], ['rage'],
+    ['swift', 'ranged'], ['armor', 'regen'], ['armor', 'regen', 'swift']
   ];
   var CHAPTERS = CHAPTER_NAMES.map(function (name, i) {
     var swarm = i % 2 === 0;
@@ -231,6 +287,7 @@
       id: i + 1, name: name,
       enemyType: swarm ? 'swarm' : 'elite',
       desc: swarm ? '물량형 — 다수의 약한 적이 밀려온다' : '정예형 — 단단한 소수가 전진한다',
+      mods: CHAPTER_MODS[i],
       mult: Math.pow(CHAPTER_MULT_GROWTH, i),
       countFor: swarm
         ? function (wave) { return Math.min(5 + wave, 14); }
@@ -252,7 +309,7 @@
     EVOLUTION: EVOLUTION, LV_MAX: LV_MAX, LEVELUP: LEVELUP, TICKET: TICKET,
     SKILLS: SKILLS, SKILL_VALS: SKILL_VALS,
     EXECUTE: EXECUTE, SUMMON: SUMMON,
-    SHOP: SHOP, ENEMY: ENEMY, CHAPTERS: CHAPTERS,
+    SHOP: SHOP, ENEMY: ENEMY, MODIFIERS: MODIFIERS, CHAPTERS: CHAPTERS,
     WAVES_PER_CHAPTER: WAVES_PER_CHAPTER, BOSS_EVERY: BOSS_EVERY, LIVES: LIVES,
     ENEMY_LOOK: ENEMY_LOOK
   };

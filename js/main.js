@@ -91,9 +91,11 @@
     UI.setTopbar(chapterLabel(), '웨이브 ' + run.wave + '/' + D.WAVES_PER_CHAPTER);
     UI.setGold(run.gold);
     UI.setLives(run.lives);
-    var info = run.wave % D.BOSS_EVERY === 0
+    var ch = D.CHAPTERS[run.chIdx];
+    var modStr = (ch.mods || []).map(function (k) { return D.MODIFIERS[k].icon; }).join('');
+    var info = (run.wave % D.BOSS_EVERY === 0
       ? '👹 보스 출현!'
-      : '적 ' + D.CHAPTERS[run.chIdx].countFor(run.wave) + '마리';
+      : '적 ' + ch.countFor(run.wave) + '마리') + (modStr ? ' ' + modStr : '');
     UI.setPanelMsg((prefix || '') + '웨이브 ' + run.wave + '/' + D.WAVES_PER_CHAPTER + ' — ' + info +
       ' · 수입 +' + D.SHOP.income + 'G' + (interest > 0 ? ' (이자 +' + interest + 'G)' : ''));
     UI.setButtons(true, true);
@@ -173,7 +175,10 @@
   // ---- 전투 ----
   function startWave() {
     if (unitEntries().length === 0) {
-      UI.setPanelMsg('보드에 유닛이 없습니다 — 상점에서 구매해 주세요');
+      // 유닛 없이 강행 = 즉시 패배 처리 (향후 콘텐츠 대비 선작업)
+      if (window.confirm('배치된 유닛이 없습니다.\n이대로 진행하면 즉시 패배합니다. 진행할까요?')) {
+        loseLife();
+      }
       return;
     }
     run.phase = 'battle';
@@ -324,6 +329,26 @@
     else swapLoc(src, dst);
   }
 
+  // 드래그 중 결과 미리보기 (v1.0): 진화 결과 / 레벨업권 사용 결과
+  function dragPreview() {
+    if (!drag || !dropZone || dropZone.type !== 'cell' || !canManage()) return null;
+    var src = findByUid(drag.uid);
+    var dst = entryAtZone(dropZone);
+    if (!src || !dst || dst === src) return null;
+    if (isTicket(src) && !isTicket(dst)) {
+      if (dst.lv < D.LV_MAX[D.UNITS[dst.unitId].tier]) {
+        return { unitId: dst.unitId, lv: dst.lv + 1, col: dst.col, row: dst.row,
+                 label: '🎫 Lv.' + (dst.lv + 1) };
+      }
+      return null;
+    }
+    if (isTicket(src) || isTicket(dst)) return null;
+    var r = L.mergeResult(dst.unitId, dst.lv, src.unitId, src.lv);
+    if (r) return { unitId: r.unitId, lv: 1, col: dst.col, row: dst.row,
+                    label: '✨ ' + D.UNITS[r.unitId].name };
+    return null;
+  }
+
   function swapLoc(a, b) {
     var za = zoneOfEntry(a), zb = zoneOfEntry(b);
     detach(a); detach(b);
@@ -366,6 +391,10 @@
         res = B.step(run.battle, 1 / 60);
         acc -= 1 / 60;
       }
+      if (run.battle.overtime && !run.battle.otMsg) {
+        run.battle.otMsg = true;
+        UI.setPanelMsg('⚡ 광폭화! 전원 공속·이속 2배 — 결판을 내라!');
+      }
       if (res !== 'ongoing') {
         run.phase = 'ended'; // 승패 연출 잠깐 보여준 뒤 진행
         (function (r) { setTimeout(function () { onWaveEnd(r); }, 650); }(res));
@@ -376,6 +405,7 @@
         mode: (run.phase === 'battle' || run.phase === 'ended') ? 'battle' : 'prep',
         board: run.board, battle: run.battle,
         hints: mergeHints(), drag: drag, dropZone: dropZone,
+        preview: dragPreview(),
         time: now / 1000
       });
     }

@@ -34,12 +34,15 @@
     D.CHAPTERS.forEach(function (ch, ci) {
       var stars = progress.stars[ch.id] || 0;
       var unlocked = ci === 0 || (progress.stars[ch.id - 1] || 0) >= 1;
+      var modStr = (ch.mods || []).map(function (k) {
+        return D.MODIFIERS[k].icon + D.MODIFIERS[k].name;
+      }).join(' ');
       var btn = document.createElement('button');
       btn.className = 'ch-row';
       btn.disabled = !unlocked;
       btn.innerHTML =
         '<span class="ch-info"><h2>' + (unlocked ? '' : '🔒 ') + '챕터 ' + ch.id + ' · ' + ch.name + '</h2>' +
-        '<span class="desc">' + ch.desc + '</span></span>' +
+        '<span class="desc">' + ch.desc + (modStr ? ' · <b>' + modStr + '</b>' : '') + '</span></span>' +
         '<span class="ch-stars">' + (unlocked ? starStr(stars) : '') + '</span>';
       btn.onclick = function () { onChapter(ci); };
       root.appendChild(btn);
@@ -151,6 +154,17 @@
       (s.hps ? '<span>💚 초당 힐 ' + s.hps + '</span>' : '') +
       '</div>' +
       '<div class="tt-skill"><b>' + sk.name + '</b> — ' + sk.desc + '</div>';
+    // 조합표 (v1.0): 같은 티어 Max끼리 — 이 유닛의 클래스 × 상대 클래스 → 진화 결과
+    var evo = D.EVOLUTION[u.tier + 1];
+    if (evo) {
+      var cells = '';
+      ['K', 'W', 'A', 'M', 'C', 'R', 'N'].forEach(function (c2) {
+        var key = [u.cls, c2].sort().join('+');
+        cells += '<span>' + D.CLASSES[c2].icon + '→' + D.UNITS[evo[key]].name + '</span>';
+      });
+      html += '<div class="tt-combo"><b>조합표</b> — 같은 티어 Max끼리' +
+        '<div class="tt-combo-grid">' + cells + '</div></div>';
+    }
     return html;
   }
   function showUnitTooltip(unitId, lv, x, y, live) {
@@ -222,7 +236,8 @@
     ctx.fillStyle = cl.color;
     ctx.fill();
     ctx.lineWidth = u.tier >= 2 ? 3 : 1.5;
-    ctx.strokeStyle = u.tier === 3 ? '#7ef0ff' : (u.tier === 2 ? '#ffd76a' : '#ffffff55');
+    ctx.strokeStyle = u.tier === 4 ? '#d98cff'
+      : (u.tier === 3 ? '#7ef0ff' : (u.tier === 2 ? '#ffd76a' : '#ffffff55'));
     ctx.stroke();
     // 머지 힌트 반짝임
     if (opts.hint) {
@@ -413,6 +428,36 @@
     drawBar(e.x - e.r, e.y - e.r - 8, e.r * 2, 4, e.hp / e.maxHp, '#e05656');
   }
 
+  // ---- 드래그 중 결과 미리보기 (v1.0): 진화·레벨업 결과 고스트 + 라벨 ----
+  function drawPreview(p, t) {
+    var x = G.cellX(p.col), y = G.cellY(p.row);
+    var pulse = 0.5 + 0.5 * Math.sin(t * 8);
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    drawUnitSprite(x, y, p.unitId, p.lv, { time: t });
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255, 215, 106, ' + (0.4 + 0.6 * pulse) + ')';
+    roundRect(x - 31, y - 31, 62, 62, 12);
+    ctx.stroke();
+    // 결과 라벨
+    ctx.font = 'bold 12px sans-serif';
+    var w = ctx.measureText(p.label).width + 16;
+    var lx = Math.max(5 + w / 2, Math.min(400 - w / 2, x));
+    var ly = y - 52;
+    roundRect(lx - w / 2, ly - 11, w, 22, 7);
+    ctx.fillStyle = '#171a22ee';
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#ffd76a';
+    ctx.stroke();
+    ctx.fillStyle = '#ffd76a';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.label, lx, ly + 1);
+    ctx.restore();
+  }
+
   // ---- 판매 존 (보드 우상단, 준비 단계 전용 — v0.8 벤치 폐지) ----
   var SELL_X = 375, SELL_Y = 302;
 
@@ -469,12 +514,15 @@
       view.battle.fx.forEach(drawFx);
     } else {
       // 준비 모드: 보드 유닛 + 레벨업권 (레벨업권은 전투 중 미표시 — v0.9)
+      var pv = view.preview;
       view.board.forEach(function (b) {
         if (view.drag && view.drag.uid === b.uid) return;
+        if (pv && b.col === pv.col && b.row === pv.row) return; // 미리보기가 대체
         if (b.kind === 'ticket') { drawTicket(G.cellX(b.col), G.cellY(b.row)); return; }
         drawUnitSprite(G.cellX(b.col), G.cellY(b.row), b.unitId, b.lv,
           { hint: view.hints.has('u' + b.uid), time: t });
       });
+      if (pv) drawPreview(pv, t);
     }
 
     if (view.mode !== 'battle') drawSellZone(view);

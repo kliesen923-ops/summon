@@ -79,12 +79,15 @@
       return {
         key: 'e' + i, hp: e.hp, maxHp: e.hp, atk: e.atk, as: e.as,
         speed: e.speed, r: e.r, color: e.color, isBoss: e.isBoss,
+        dmgTaken: e.dmgTaken || 1,                                  // 방어 모디파이어
+        regenPct: e.regenPct || 0,                                  // 재생 모디파이어
+        rangePx: e.rangeCells ? e.rangeCells * D.GEOM.CELL_PX : 0,  // 원거리 모디파이어 (0 = 근접)
         x: 30 + rng() * (D.GEOM.FIELD_W - 60),
         y: -20 - i * 26 - rng() * 20,
         cd: 0, tauntKey: null, tauntT: 0, alive: true
       };
     });
-    return { units: units, enemies: enemies, t: 0, rng: rng, fx: [], result: 'ongoing' };
+    return { units: units, enemies: enemies, t: 0, rng: rng, fx: [], overtime: false, result: 'ongoing' };
   }
 
   // ---- 공통 유틸 ----
@@ -127,7 +130,7 @@
     if (unit.hp <= 0) { unit.alive = false; addFx(st, 'die', unit.x, unit.y); }
   }
   function hitEnemy(st, en, dmg) {
-    en.hp -= dmg;
+    en.hp -= dmg * (en.dmgTaken || 1); // 방어 모디파이어: 받는 피해 감산
     addFx(st, 'hit', en.x, en.y, { dur: 0.2 });
     if (en.hp <= 0) en.alive = false;
   }
@@ -309,6 +312,21 @@
     if (!foes.length) { st.result = 'win'; return st.result; }
     if (!realUnits.length || st.t > D.ENEMY.TIMEOUT) { st.result = 'lose'; return st.result; }
 
+    // ---- 광폭화 (TFT식 루즈 방지, v1.0): OVERTIME 초과 시 전장 전원 공속·이속 ×2 ----
+    if (!st.overtime && st.t >= D.ENEMY.OVERTIME) {
+      st.overtime = true;
+      st.units.forEach(function (u) { u.as *= 2; u.move *= 2; });
+      st.enemies.forEach(function (e) { e.as *= 2; e.speed *= 2; });
+    }
+
+    // ---- 재생 모디파이어 ----
+    for (var ri = 0; ri < foes.length; ri++) {
+      var re = foes[ri];
+      if (re.regenPct > 0 && re.hp < re.maxHp) {
+        re.hp = Math.min(re.maxHp, re.hp + re.maxHp * re.regenPct * dt);
+      }
+    }
+
     // ---- 적 행동 (최근접 아군 추적 — 정령 포함) ----
     for (var i = 0; i < foes.length; i++) {
       var e = foes[i];
@@ -320,14 +338,18 @@
       if (!target) target = nearest(e, units);
       if (!target) break;
       var d = dist(e, target);
-      var reach = D.ENEMY.MELEE_RANGE + UNIT_R;
+      var reach = (e.rangePx || D.ENEMY.MELEE_RANGE) + UNIT_R; // 원거리 모디파이어 반영
       if (d > reach) {
         e.x += (target.x - e.x) / d * e.speed * dt;
         e.y += (target.y - e.y) / d * e.speed * dt;
         e.cd = Math.max(0, e.cd - dt);
       } else {
         e.cd -= dt;
-        if (e.cd <= 0) { hitUnit(st, target, e.atk, rotTo(e, target)); e.cd = 1 / e.as; }
+        if (e.cd <= 0) {
+          if (e.rangePx) addFx(st, 'arrow', e.x, e.y, { x1: target.x, y1: target.y, color: '#e05656', dur: 0.16 });
+          hitUnit(st, target, e.atk, rotTo(e, target));
+          e.cd = 1 / e.as;
+        }
       }
       units = aliveList(st.units);
       if (!units.length) break;

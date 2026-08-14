@@ -65,7 +65,7 @@
   }
 
   // ---- 상점 (설계 §5, v0.5~v0.7) ----
-  var TIER_IDS = { 1: [], 2: [], 3: [] };
+  var TIER_IDS = { 1: [], 2: [], 3: [], 4: [] }; // T4는 상점 미등장 (진화 전용) — 풀만 유지
   Object.keys(D.UNITS).forEach(function (id) {
     TIER_IDS[D.UNITS[id].tier].push(id);
   });
@@ -120,7 +120,7 @@
   }
 
   // ---- 적 웨이브 생성 (설계 §6) ----
-  // 반환: [{hp, atk, as, speed, r, color, isBoss}]
+  // 반환: [{hp, atk, as, speed, r, color, isBoss, dmgTaken?, regenPct?, rangeCells?}]
   function makeWave(chapterIdx, wave, rng) {
     var ch = D.CHAPTERS[chapterIdx];
     var mult = ch.mult;
@@ -129,15 +129,30 @@
     var look = D.ENEMY_LOOK[ch.enemyType];
     var out = [];
 
+    // 챕터 모디파이어 병합 (v1.0)
+    var mod = { speedMult: 1, asMult: 1, dmgTaken: 1, regenPct: 0, rangeCells: 0 };
+    (ch.mods || []).forEach(function (key) {
+      var m = D.MODIFIERS[key];
+      if (m.speedMult) mod.speedMult *= m.speedMult;
+      if (m.asMult) mod.asMult *= m.asMult;
+      if (m.dmgTaken) mod.dmgTaken *= m.dmgTaken;
+      if (m.regenPct) mod.regenPct += m.regenPct;
+      if (m.rangeCells) mod.rangeCells = Math.max(mod.rangeCells, m.rangeCells);
+    });
+
     function push(hp, dps, look_, isBoss) {
+      var as = D.ENEMY.AS * mod.asMult; // DPS 예산 유지: 공속이 오르면 타당 피해는 낮아짐
       out.push({
         hp: Math.max(10, Math.round(hp)),
-        atk: Math.max(1, Math.round(dps / D.ENEMY.AS)),
-        as: D.ENEMY.AS,
-        speed: look_.speed,
+        atk: Math.max(1, Math.round(dps / as)),
+        as: as,
+        speed: look_.speed * mod.speedMult,
         r: look_.r,
         color: look_.color,
-        isBoss: !!isBoss
+        isBoss: !!isBoss,
+        dmgTaken: mod.dmgTaken,
+        regenPct: mod.regenPct,
+        rangeCells: mod.rangeCells
       });
     }
 

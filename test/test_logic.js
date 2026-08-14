@@ -48,12 +48,19 @@ eq('아크메이지 Lv1 (T3 광역)', hpatk('archmage', 1), [1025, 251]);
 eq('세인트 Lv1 (T3 지원힐)', hpatk('saint', 1), [1540, 91]);
 eq('팬텀 Lv1 (T3 암살)', hpatk('phantom', 1), [1195, 148]);
 eq('스피릿로드 Lv1 (T3 소환)', hpatk('spiritlord', 1), [1025, 103]);
-eq('워로드 Lv3 (n=8, 최상단)', hpatk('warlord', 3), [3845, 384]);
+eq('워로드 Lv3 (n=8)', hpatk('warlord', 3), [3845, 384]);
+eq('이지스 Lv1 (n=9, T4 탱킹)', hpatk('aegis', 1), [9225, 384]);
+eq('아레스 Lv1 (T4 근접딜)', hpatk('ares', 1), [5765, 577]);
+eq('가이아 Lv3 (n=11, 최상단)', hpatk('gaia', 3), [7785, 778]);
 ok('세인트 HPS 91', L.statsFor('saint', 1).hps === 91);
-ok('전 티어 Lv 상한 3', D.LV_MAX[1] === 3 && D.LV_MAX[2] === 3 && D.LV_MAX[3] === 3);
-ok('유닛 총 63종 (7+28+28)', Object.keys(D.UNITS).length === 63);
+ok('전 티어 Lv 상한 3', D.LV_MAX[1] === 3 && D.LV_MAX[2] === 3 && D.LV_MAX[3] === 3 && D.LV_MAX[4] === 3);
+ok('유닛 총 91종 (7+28+28+28)', Object.keys(D.UNITS).length === 91);
 ok('진화표 T2 28종', Object.keys(D.EVOLUTION[2]).length === 28);
 ok('진화표 T3 28종', Object.keys(D.EVOLUTION[3]).length === 28);
+ok('진화표 T4 28종', Object.keys(D.EVOLUTION[4]).length === 28);
+ok('진화표 T4 결과 전부 T4 유닛', Object.keys(D.EVOLUTION[4]).every(function (k) {
+  return D.UNITS[D.EVOLUTION[4][k]] && D.UNITS[D.EVOLUTION[4][k]].tier === 4;
+}));
 
 // ---- 2) 진화 규칙 (v0.9: 성급 합성 폐지 — 같은 티어 Max 둘 = 진화만) ----
 eq('비Max 동일 유닛 무반응 (성급 합성 폐지)', L.mergeResult('knight', 1, 'knight', 1), null);
@@ -62,7 +69,8 @@ eq('Max+비Max 무반응', L.mergeResult('knight', 3, 'knight', 2), null);
 eq('T1 Max 동일유닛 = 순혈 진화', L.mergeResult('knight', 3, 'knight', 3), { type: 'evolve', unitId: 'grandknight' });
 eq('T2 Max 쌍 = T3 순혈 진화', L.mergeResult('gladiator', 3, 'gladiator', 3), { type: 'evolve', unitId: 'warlord' });
 eq('티어 혼합 Max 무반응', L.mergeResult('knight', 3, 'gladiator', 3), null);
-eq('T3 Max 쌍 무반응(T4 미구현)', L.mergeResult('sentinel', 3, 'sentinel', 3), null);
+eq('T3 Max 쌍 = T4 진화 (v1.0)', L.mergeResult('sentinel', 3, 'sentinel', 3), { type: 'evolve', unitId: 'aegis' });
+eq('T4 Max 쌍 무반응(T5 미구현)', L.mergeResult('aegis', 3, 'aegis', 3), null);
 // 클래스 쌍 → T2 전 28종 (매트릭스 v1.5 §2 전수)
 var pairs = {
   'knight+knight': 'grandknight', 'warrior+warrior': 'berserker', 'archer+archer': 'hawkeye',
@@ -84,14 +92,21 @@ Object.keys(pairs).forEach(function (k) {
   var r2 = L.mergeResult(p[1], 3, p[0], 3); // 순서 무관
   eq('진화(역순) ' + k, r2 && r2.unitId, pairs[k]);
 });
-// T2 Max 조합 → T3 전 28쌍 (클래스 대표 T2 순혈 사용)
+// T2 Max 조합 → T3 / T3 Max 조합 → T4 전 28쌍 (클래스 대표 순혈 사용)
 (function () {
-  var rep = { K: 'grandknight', W: 'berserker', A: 'hawkeye', M: 'highmage',
-              C: 'bishop', R: 'assassin', N: 'highsummoner' };
+  var rep2 = { K: 'grandknight', W: 'berserker', A: 'hawkeye', M: 'highmage',
+               C: 'bishop', R: 'assassin', N: 'highsummoner' };
+  var rep3 = { K: 'sentinel', W: 'warlord', A: 'stormranger', M: 'archmage',
+               C: 'saint', R: 'phantom', N: 'spiritlord' };
   Object.keys(D.EVOLUTION[3]).forEach(function (key) {
     var cls = key.split('+');
-    var r = L.mergeResult(rep[cls[0]], 3, rep[cls[1]], 3);
+    var r = L.mergeResult(rep2[cls[0]], 3, rep2[cls[1]], 3);
     eq('T3 진화 ' + key, r && r.unitId, D.EVOLUTION[3][key]);
+  });
+  Object.keys(D.EVOLUTION[4]).forEach(function (key) {
+    var cls = key.split('+');
+    var r = L.mergeResult(rep3[cls[0]], 3, rep3[cls[1]], 3);
+    eq('T4 진화 ' + key, r && r.unitId, D.EVOLUTION[4][key]);
   });
 }());
 
@@ -106,9 +121,39 @@ eq('T3도 동일 상한', L.levelAfterWave('sentinel', 2, true), 3);
 eq('판매가 T1 (Lv 무관)', [L.sellValue('knight', 1), L.sellValue('knight', 3)], [2, 2]);
 eq('판매가 T2 (Lv 무관)', [L.sellValue('grandknight', 1), L.sellValue('grandknight', 3)], [6, 6]);
 eq('판매가 T3', L.sellValue('sentinel', 1), 12);
+eq('판매가 T4', L.sellValue('aegis', 1), 24);
 ok('전 티어 판매가 < 구매가 (차익 차단)',
   D.SHOP.sell[1] < D.SHOP.priceRandT1 + 1 && D.SHOP.sell[2] < D.SHOP.priceRandT2 &&
   D.SHOP.sell[3] < D.SHOP.priceRandT3 && D.SHOP.sell.ticket < D.SHOP.priceTicket);
+
+// ---- 2.6) 챕터 모디파이어 (v1.0) ----
+(function () {
+  var rngM = L.makeRng(5);
+  var w1 = L.makeWave(0, 3, rngM); // 챕터1: 모디파이어 없음
+  ok('챕터1 모디파이어 없음', w1.every(function (e) {
+    return e.dmgTaken === 1 && e.regenPct === 0 && e.rangeCells === 0 && e.as === D.ENEMY.AS;
+  }));
+  var w2 = L.makeWave(1, 3, rngM); // 챕터2: 방어
+  ok('챕터2 방어 (받는 피해 ×0.75)', w2.every(function (e) { return e.dmgTaken === 0.75; }));
+  var w3 = L.makeWave(2, 3, rngM); // 챕터3: 신속
+  ok('챕터3 신속 (이속 ×1.5)', w3.every(function (e) {
+    return Math.abs(e.speed - D.ENEMY_LOOK.swarm.speed * 1.5) < 1e-9;
+  }));
+  var w4 = L.makeWave(3, 3, rngM); // 챕터4: 원거리
+  ok('챕터4 원거리 (사거리 2.5칸)', w4.every(function (e) { return e.rangeCells === 2.5; }));
+  var w5 = L.makeWave(4, 3, rngM); // 챕터5: 재생
+  ok('챕터5 재생 (초당 0.9%)', w5.every(function (e) { return e.regenPct === 0.009; }));
+  var w6 = L.makeWave(5, 3, rngM); // 챕터6: 광포
+  ok('챕터6 광포 (공속 ×1.35)', w6.every(function (e) {
+    return Math.abs(e.as - D.ENEMY.AS * 1.35) < 1e-9;
+  }));
+  var w9 = L.makeWave(8, 3, rngM); // 챕터9: 방어+재생+신속
+  ok('챕터9 3중 모디파이어', w9.every(function (e) {
+    return e.dmgTaken === 0.75 && e.regenPct === 0.009 &&
+      Math.abs(e.speed - D.ENEMY_LOOK.swarm.speed * 1.5) < 1e-9;
+  }));
+  ok('광폭화 시점 < 패배 타임아웃', D.ENEMY.OVERTIME < D.ENEMY.TIMEOUT);
+}());
 
 // ---- 3) 상점 롤 + 레벨업권 + 선택지 잠금 + 이자 ----
 (function () {
