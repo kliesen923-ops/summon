@@ -21,10 +21,10 @@
   function buildUnit(c, i, cd0, pos) {
     var u = D.UNITS[c.unitId];
     var a = D.ARCHETYPES[u.arch];
-    var s = L.statsFor(c.unitId, c.star);
+    var s = L.statsFor(c.unitId, c.lv);
     return {
       key: c.uid !== undefined ? 'u' + c.uid : 'u' + i,
-      unitId: c.unitId, star: c.star, tier: u.tier,
+      unitId: c.unitId, lv: c.lv, tier: u.tier,
       cls: u.cls, arch: u.arch, name: u.name, emoji: u.emoji,
       col: c.col, row: c.row,
       x: pos ? pos.x : D.GEOM.cellX(c.col),
@@ -42,12 +42,12 @@
 
   // 정령: 동단계 근접딜의 35% (기준표 §6)
   function makeSpirit(owner) {
-    var m = L.ladderMult(L.mergeSteps(owner.tier, owner.star));
+    var m = L.ladderMult(L.mergeSteps(owner.tier, owner.lv));
     var a = D.ARCHETYPES.melee;
     var idx = owner.spiritSeq++;
     return {
       key: owner.key + '_s' + idx, isSpirit: true, ownerKey: owner.key,
-      unitId: 'spirit', star: 0, tier: owner.tier,
+      unitId: 'spirit', lv: 0, tier: owner.tier,
       cls: 'N', arch: 'spirit', name: '정령', emoji: '🌱',
       col: -1, row: -1,
       x: owner.x + (idx % 2 ? 20 : -20), y: owner.y + 18,
@@ -63,7 +63,7 @@
     };
   }
 
-  // boardCells: [{uid, unitId, star, col, row}], enemySpecs: LOGIC.makeWave 결과
+  // boardCells: [{uid, unitId, lv, col, row}], enemySpecs: LOGIC.makeWave 결과
   function createBattle(boardCells, enemySpecs, seed) {
     var rng = L.makeRng(seed);
     var units = boardCells.map(function (c, i) {

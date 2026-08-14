@@ -1,8 +1,9 @@
 /* =========================================================
  * 프로젝트 서몬 프로토타입 — main.js
- * 화면 상태머신 · 런 진행 · 상점/벤치/판매/골드 관리 · 저장 · 게임 루프
- * 흐름: MAIN → STAGE(준비[상점+배치, 제한시간] → 전투 ×6웨이브) → RESULT → MAIN
+ * 화면 상태머신 · 런 진행 · 상점/판매/골드 관리 · 저장 · 게임 루프
+ * 흐름: MAIN → STAGE(준비[상점+배치, 제한시간] → 전투 ×12웨이브) → RESULT → MAIN
  * 상점(v0.5): 4슬롯 상시 노출, 구매해도 유지, 리롤로만 교체, 잠금 시 다음 웨이브에도 유지
+ * 레벨(v0.9): 전투 참여 = +1Lv(보스 +2), Max끼리 = 진화, 레벨업권 = 필드 차지 아이템
  * ========================================================= */
 (function () {
   'use strict';
@@ -42,8 +43,10 @@
   }
 
   // ---- 유닛 컬렉션 헬퍼 (보드 3×3 단일 — v0.8 벤치 폐지) ----
+  // 보드 엔트리: 유닛 {uid, unitId, lv, col, row} | 레벨업권 {uid, kind:'ticket', col, row}
   var BOARD_MAX = 9;
-  function allEntries() { return run.board; }
+  function isTicket(e) { return e.kind === 'ticket'; }
+  function unitEntries() { return run.board.filter(function (e) { return !isTicket(e); }); }
   function findByUid(uid) {
     for (var i = 0; i < run.board.length; i++) if (run.board[i].uid === uid) return run.board[i];
     return null;
@@ -77,7 +80,7 @@
   }
 
   // 준비 단계 진입: 수입+이자 지급 + 상점 갱신(잠금 시 유지) + 제한시간 시작
-  function beginPrep() {
+  function beginPrep(prefix) {
     run.phase = 'prep';
     run.battle = null;
     var interest = L.interestFor(run.gold);
@@ -91,7 +94,7 @@
     var info = run.wave % D.BOSS_EVERY === 0
       ? '👹 보스 출현!'
       : '적 ' + D.CHAPTERS[run.chIdx].countFor(run.wave) + '마리';
-    UI.setPanelMsg('웨이브 ' + run.wave + '/' + D.WAVES_PER_CHAPTER + ' — ' + info +
+    UI.setPanelMsg((prefix || '') + '웨이브 ' + run.wave + '/' + D.WAVES_PER_CHAPTER + ' — ' + info +
       ' · 수입 +' + D.SHOP.income + 'G' + (interest > 0 ? ' (이자 +' + interest + 'G)' : ''));
     UI.setButtons(true, true);
     refreshShop();
@@ -99,13 +102,8 @@
 
   // ---- 상점 ----
   function canBuySlot(slot) {
-    if (slot.sold || slot.price > run.gold) return false;
-    if (run.board.length < BOARD_MAX) return true;
-    // 만석: 확정 카드가 즉시 머지 가능할 때만 허용 (랜덤 카드는 자리 필요)
-    if (slot.kind !== 'unit') return false;
-    return allEntries().some(function (u) {
-      return !!L.mergeResult(u.unitId, u.star, slot.unitId, 1);
-    });
+    // 신규 구매는 항상 Lv.1이라 즉시 합성이 불가 — 빈칸이 있어야만 구매 가능
+    return !slot.sold && slot.price <= run.gold && run.board.length < BOARD_MAX;
   }
 
   function buySlot(i) {
@@ -114,12 +112,15 @@
     if (!slot || !canBuySlot(slot)) return;
     run.gold -= slot.price;
     slot.sold = true;
-    var unitId = L.resolveShopUnit(slot, run.rng);
-    placeCard(unitId);
-    UI.setGold(run.gold);
-    if (slot.kind !== 'unit') {
-      UI.setPanelMsg('랜덤 카드 → ' + D.UNITS[unitId].name + '!');
+    if (slot.kind === 'ticket') {
+      placeTicket();
+      UI.setPanelMsg('🎫 레벨업권 구매 — 유닛에 겹치면 +1레벨');
+    } else {
+      var unitId = L.resolveShopUnit(slot, run.rng);
+      placePreferred(unitId);
+      if (slot.kind !== 'unit') UI.setPanelMsg('랜덤 카드 → ' + D.UNITS[unitId].name + '!');
     }
+    UI.setGold(run.gold);
     refreshShop();
   }
 
@@ -146,42 +147,33 @@
     refreshShop();
   }
 
-  // 카드 수급: 보드 빈칸 자동 배치 → 만석이면 즉시 머지
-  function placeCard(cid) {
-    if (run.board.length < BOARD_MAX) { placePreferred(cid); return; }
-    mergeIntoAny(cid);
-  }
-
+  // 유닛 자동 배치: 근접 앞줄, 원거리·지원 뒷줄
   function placePreferred(cid) {
     var arch = D.UNITS[cid].arch;
     var front = (arch === 'tank' || arch === 'melee' || arch === 'assassin');
-    var rows = front ? [0, 1, 2] : [2, 1, 0]; // 근접 앞줄, 원거리·지원 뒷줄
-    for (var ri = 0; ri < 3; ri++) for (var c = 0; c < 3; c++) {
-      var row = rows[ri];
-      if (!entryAtZone({ type: 'cell', col: c, row: row })) {
-        run.board.push({ uid: run.nextUid++, unitId: cid, star: 1, col: c, row: row });
-        return;
-      }
-    }
+    var rows = front ? [0, 1, 2] : [2, 1, 0];
+    var zone = freeCell(rows);
+    if (zone) run.board.push({ uid: run.nextUid++, unitId: cid, lv: 1, col: zone.col, row: zone.row });
   }
 
-  function mergeIntoAny(cid) {
-    var all = allEntries();
-    for (var i = 0; i < all.length; i++) {
-      var u = all[i];
-      var r = L.mergeResult(u.unitId, u.star, cid, 1);
-      if (r) {
-        u.unitId = r.unitId;
-        u.star = r.type === 'star' ? r.star : 1;
-        return;
-      }
+  // 레벨업권 배치: 전투에 안 나가는 아이템이라 뒷줄부터
+  function placeTicket() {
+    var zone = freeCell([2, 1, 0]);
+    if (zone) run.board.push({ uid: run.nextUid++, kind: 'ticket', col: zone.col, row: zone.row });
+  }
+
+  function freeCell(rows) {
+    for (var ri = 0; ri < 3; ri++) for (var c = 0; c < 3; c++) {
+      var z = { type: 'cell', col: c, row: rows[ri] };
+      if (!entryAtZone(z)) return z;
     }
+    return null;
   }
 
   // ---- 전투 ----
   function startWave() {
-    if (run.board.length === 0) {
-      UI.setPanelMsg('보드에 유닛이 없습니다 — 상점에서 구매하거나 벤치에서 올려 주세요');
+    if (unitEntries().length === 0) {
+      UI.setPanelMsg('보드에 유닛이 없습니다 — 상점에서 구매해 주세요');
       return;
     }
     run.phase = 'battle';
@@ -190,20 +182,31 @@
     UI.clearShop();
     UI.setPanelMsg('⚔ 웨이브 ' + run.wave + ' 전투 중...');
     var enemies = L.makeWave(run.chIdx, run.wave, run.rng);
-    run.battle = B.createBattle(run.board, enemies, Math.floor(run.rng() * 1e9));
+    run.battle = B.createBattle(unitEntries(), enemies, Math.floor(run.rng() * 1e9));
   }
 
-  // 제한시간 초과: 보드가 비어 있으면(구매 전무) 목숨 소실 처리
+  // 제한시간 초과: 전투 가능한 유닛이 없으면(구매 전무) 목숨 소실 처리
   function autoStartWave() {
-    if (run.board.length === 0) {
+    if (unitEntries().length === 0) {
       loseLife();
       return;
     }
     startWave();
   }
 
+  // 웨이브 종료 레벨업 (v0.9): 승패 무관 전투 참여 유닛 전원 +1Lv, 보스 +2Lv
+  function levelUpBoard() {
+    var isBoss = run.wave % D.BOSS_EVERY === 0;
+    var maxed = 0;
+    unitEntries().forEach(function (e) {
+      e.lv = L.levelAfterWave(e.unitId, e.lv, isBoss);
+      if (e.lv === D.LV_MAX[D.UNITS[e.unitId].tier]) maxed++;
+    });
+    return { isBoss: isBoss, maxed: maxed };
+  }
+
   // 전멸: 목숨 1 소멸. 남으면 같은 웨이브를 재정비 후 재도전 (수입은 지급)
-  function loseLife() {
+  function loseLife(extra) {
     run.lives--;
     UI.setLives(run.lives);
     if (run.lives <= 0) {
@@ -212,11 +215,12 @@
       return;
     }
     beginPrep(); // 같은 웨이브 유지 — 수입·이자 받고 파티 재정비
-    UI.setPanelMsg('💔 전멸! 남은 목숨 ' + run.lives + ' — 재정비 후 웨이브 ' + run.wave + ' 재도전');
+    UI.setPanelMsg('💔 전멸! 남은 목숨 ' + run.lives + ' — 웨이브 ' + run.wave + ' 재도전' + (extra || ''));
   }
 
   function onWaveEnd(res) {
     if (!run) return; // 나가기로 이미 이탈
+    var lu = levelUpBoard(); // 전투 참여 = 승패 무관 레벨업
     if (res === 'win') {
       if (run.wave >= D.WAVES_PER_CHAPTER) {
         var chId = D.CHAPTERS[run.chIdx].id;
@@ -225,22 +229,22 @@
         UI.showResult(true, run.wave, chapterLabel(), stars);
       } else {
         run.wave++;
-        beginPrep();
+        beginPrep(lu.isBoss ? '📈 보스 격파 +2Lv! · ' : '📈 참여 유닛 +1Lv · ');
       }
     } else {
-      loseLife();
+      loseLife(' (참여 유닛 +' + (lu.isBoss ? 2 : 1) + 'Lv)');
     }
   }
 
-  // ---- 머지 힌트 (보드+벤치 전체, 준비 단계에만) ----
+  // ---- 진화 힌트 (같은 티어 Max 쌍, 준비 단계에만) ----
   function canManage() { return run && run.phase === 'prep'; }
 
   function mergeHints() {
     var s = new Set();
     if (!canManage()) return s;
-    var list = allEntries();
+    var list = unitEntries();
     for (var i = 0; i < list.length; i++) for (var j = i + 1; j < list.length; j++) {
-      if (L.mergeResult(list[i].unitId, list[i].star, list[j].unitId, list[j].star)) {
+      if (L.mergeResult(list[i].unitId, list[i].lv, list[j].unitId, list[j].lv)) {
         s.add('u' + list[i].uid);
         s.add('u' + list[j].uid);
       }
@@ -253,7 +257,7 @@
     if (!canManage() || !zone || zone.type === 'sell') return;
     var b = entryAtZone(zone);
     if (!b) return;
-    drag = { uid: b.uid, unitId: b.unitId, star: b.star, x: p.x, y: p.y };
+    drag = { uid: b.uid, kind: b.kind, unitId: b.unitId, lv: b.lv, x: p.x, y: p.y };
   }
   function onDragMove(p, zone) {
     if (drag) {
@@ -264,12 +268,16 @@
     updateHover(p, zone);
   }
 
-  // 호버 툴팁: 준비 = 보드·벤치 유닛 / 전투 = 살아있는 유닛 (스탯·스킬 정보)
+  // 호버 툴팁: 준비 = 보드 유닛·레벨업권 / 전투 = 살아있는 유닛 (스탯·스킬 정보)
   function updateHover(p, zone) {
     if (!run) return;
     if (run.phase === 'prep') {
       var e = (zone && zone.type !== 'sell') ? entryAtZone(zone) : null;
-      if (e) { UI.showUnitTooltip(e.unitId, e.star, p.x, p.y); return; }
+      if (e) {
+        if (isTicket(e)) UI.showTicketTooltip(p.x, p.y);
+        else UI.showUnitTooltip(e.unitId, e.lv, p.x, p.y);
+        return;
+      }
     } else if (run.phase === 'battle' && run.battle) {
       var best = null, bd = 27;
       run.battle.units.forEach(function (u) {
@@ -278,7 +286,7 @@
         if (d < bd) { bd = d; best = u; }
       });
       if (best) {
-        UI.showUnitTooltip(best.unitId, best.star, p.x, p.y, { hp: best.hp, mana: best.mana });
+        UI.showUnitTooltip(best.unitId, best.lv, p.x, p.y, { hp: best.hp, mana: best.mana });
         return;
       }
     }
@@ -297,7 +305,21 @@
     if (dst === src) return;
     if (!dst) { detach(src); attach(src, zone); return; }
 
-    var r = L.mergeResult(dst.unitId, dst.star, src.unitId, src.star);
+    // 레벨업권 → 유닛: +1Lv 후 소모 (Max 유닛에는 사용 불가 → 스왑)
+    if (isTicket(src) && !isTicket(dst)) {
+      if (dst.lv < D.LV_MAX[D.UNITS[dst.unitId].tier]) {
+        dst.lv++;
+        detach(src);
+        UI.setPanelMsg('🎫 ' + D.UNITS[dst.unitId].name + ' → Lv.' + dst.lv + '!');
+        refreshShop();
+      } else {
+        swapLoc(src, dst);
+      }
+      return;
+    }
+    if (isTicket(src) || isTicket(dst)) { swapLoc(src, dst); return; }
+
+    var r = L.mergeResult(dst.unitId, dst.lv, src.unitId, src.lv);
     if (r) applyMerge(src, dst, r);
     else swapLoc(src, dst);
   }
@@ -310,16 +332,17 @@
 
   function applyMerge(src, dst, r) {
     dst.unitId = r.unitId;
-    dst.star = r.type === 'star' ? r.star : 1;
+    dst.lv = 1; // 진화 = 상위 티어 Lv.1
     detach(src);
+    UI.setPanelMsg('✨ 진화! → ' + D.UNITS[r.unitId].name);
   }
 
   function sellEntry(e) {
-    var v = L.sellValue(e.unitId, e.star);
+    var v = isTicket(e) ? D.SHOP.sell.ticket : L.sellValue(e.unitId, e.lv);
     detach(e);
     run.gold += v;
     UI.setGold(run.gold);
-    UI.setPanelMsg(D.UNITS[e.unitId].name + ' 판매 +' + v + 'G');
+    UI.setPanelMsg((isTicket(e) ? D.TICKET.name : D.UNITS[e.unitId].name) + ' 판매 +' + v + 'G');
     refreshShop(); // 구매 가능 상태 갱신
   }
 
@@ -379,6 +402,12 @@
     setInterval(function () {
       if (!run) return;
       if (run.phase === 'prep') {
+        // 보유 레벨업권은 첫 비Max 유닛에 즉시 사용
+        var tk = run.board.filter(isTicket)[0];
+        var target = unitEntries().filter(function (e) {
+          return e.lv < D.LV_MAX[D.UNITS[e.unitId].tier];
+        })[0];
+        if (tk && target) { target.lv++; detach(tk); return; }
         var cardEl = document.querySelector('#draft-cards .card:not(.off):not(.sold)');
         if (cardEl) cardEl.click();
         else document.getElementById('btn-start').click();

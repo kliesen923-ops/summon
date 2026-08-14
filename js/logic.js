@@ -20,18 +20,18 @@
   }
 
   // ---- 파워 사다리 ----
-  // 성급 통일 (v0.8): 머지 단계 n = (티어-1)×3 + (성급-1), T1★1=0 ~ T3★3=8
-  function mergeSteps(tier, star) {
-    return (tier - 1) * 3 + (star - 1);
+  // 레벨 체계 (v0.9): 성장 단계 n = (티어-1)×3 + (Lv-1), T1Lv1=0 ~ T3Lv3=8
+  function mergeSteps(tier, lv) {
+    return (tier - 1) * 3 + (lv - 1);
   }
   function ladderMult(n) { return Math.pow(1.5, n); }
   function roundHp(v) { return Math.round(v / 5) * 5; }
 
   // ---- 유닛 스탯 산출 (기준표 §2~4 조견표 재현) ----
-  function statsFor(unitId, star) {
+  function statsFor(unitId, lv) {
     var u = D.UNITS[unitId];
     var a = D.ARCHETYPES[u.arch];
-    var m = ladderMult(mergeSteps(u.tier, star));
+    var m = ladderMult(mergeSteps(u.tier, lv));
     var out = {
       hp: roundHp(a.hp * m),
       atk: Math.round(a.atk * m),
@@ -44,22 +44,24 @@
     return out;
   }
 
-  // ---- 머지/진화 판정 (기획서 §4.3 보편 규칙 2문장) ----
-  // 반환: {type:'star', unitId, star} | {type:'evolve', unitId} | null
-  function mergeResult(aId, aStar, bId, bStar) {
+  // ---- 진화 판정 (v0.9: 성급 합성 폐지 — 합성은 진화 하나뿐) ----
+  // 같은 티어 & 둘 다 Lv.Max → 클래스 쌍으로 상위 티어 Lv.1 진화 (T1→T2→T3)
+  // 반환: {type:'evolve', unitId} | null
+  function mergeResult(aId, aLv, bId, bLv) {
     var a = D.UNITS[aId], b = D.UNITS[bId];
-    // 규칙 1: 동일 유닛 + 동일 성급 + 상한 미만 → 성급 상승
-    if (aId === bId && aStar === bStar && aStar < D.STAR_CAP[a.tier]) {
-      return { type: 'star', unitId: aId, star: aStar + 1 };
-    }
-    // 규칙 2: 같은 티어 ★3 둘 → 클래스 쌍으로 상위 티어 ★1 진화 (T1→T2→T3, 성급 통일)
-    var aMax = aStar === D.STAR_CAP[a.tier];
-    var bMax = bStar === D.STAR_CAP[b.tier];
+    var aMax = aLv === D.LV_MAX[a.tier];
+    var bMax = bLv === D.LV_MAX[b.tier];
     if (aMax && bMax && a.tier === b.tier && D.EVOLUTION[a.tier + 1]) {
       var key = [a.cls, b.cls].sort().join('+');
       return { type: 'evolve', unitId: D.EVOLUTION[a.tier + 1][key] };
     }
-    return null; // T3★3 쌍(→T4)은 미구현: 무반응
+    return null; // T3 Max 쌍(→T4)은 미구현: 무반응
+  }
+
+  // ---- 웨이브 종료 레벨업 (v0.9: 전투 참여 = 승패 무관 +1Lv, 보스 +2Lv) ----
+  function levelAfterWave(unitId, lv, isBoss) {
+    var gain = isBoss ? D.LEVELUP.boss : D.LEVELUP.normal;
+    return Math.min(D.LV_MAX[D.UNITS[unitId].tier], lv + gain);
   }
 
   // ---- 상점 (설계 §5, v0.5~v0.7) ----
@@ -75,9 +77,12 @@
     3: { unit: D.SHOP.priceT3, rand: D.SHOP.priceRandT3 }
   };
 
-  // 슬롯 1개 생성. {kind:'unit'|'randT1~3', unitId?, tier, price, sold, locked}
+  // 슬롯 1개 생성. {kind:'unit'|'randT1~3'|'ticket', unitId?, tier?, price, sold, locked}
   // 확정 카드도 완전 랜덤 (v0.6 — 보유 유닛 재등장 바이어스 폐지)
   function rollSlot(wave, rng) {
+    if (rng() < D.SHOP.ticketChance) { // 레벨업권 (v0.9)
+      return { kind: 'ticket', price: D.SHOP.priceTicket, sold: false, locked: false };
+    }
     var tier = 1;
     if (rng() < D.SHOP.t3Chance(wave)) tier = 3;
     else if (rng() < D.SHOP.t2Chance(wave)) tier = 2;
@@ -154,11 +159,9 @@
     return out;
   }
 
-  // ---- 판매가: 투자 매몰비(T1 환산 장수) = 2^머지단계, 상한 16G ----
-  // 상한 근거: T3 판매가가 구매가(18G)를 넘으면 구매→판매 차익이 생기므로 T2★2 값에서 캡
-  function sellValue(unitId, star) {
-    var u = D.UNITS[unitId];
-    return Math.min(Math.pow(2, mergeSteps(u.tier, star)), 16);
+  // ---- 판매가: 티어 고정 (v0.9 — 레벨은 전투로 공짜 획득이라 환급에 미가산, 방치 차익 차단) ----
+  function sellValue(unitId, lv) {
+    return D.SHOP.sell[D.UNITS[unitId].tier];
   }
 
   global.LOGIC = {
@@ -168,6 +171,7 @@
     ladderMult: ladderMult,
     statsFor: statsFor,
     mergeResult: mergeResult,
+    levelAfterWave: levelAfterWave,
     rollShop: rollShop,
     resolveShopUnit: resolveShopUnit,
     interestFor: interestFor,

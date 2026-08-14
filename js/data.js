@@ -43,7 +43,7 @@
   // cls = 소속 클래스(스킬·진화·이펙트색), arch = 스탯·행동 아키타입
   // 오버라이드: range(칸), splash(주변 추가 타격 수), bounce(연쇄, 50% 피해)
   var UNITS = {
-    // Tier 1 — 성급 상한 ★3
+    // Tier 1 — 기본 7종
     knight:   { tier: 1, cls: 'K', arch: 'tank',     name: '나이트',  emoji: '🛡️' },
     warrior:  { tier: 1, cls: 'W', arch: 'melee',    name: '워리어',  emoji: '⚔️' },
     archer:   { tier: 1, cls: 'A', arch: 'ranged',   name: '아처',    emoji: '🏹' },
@@ -51,7 +51,7 @@
     cleric:   { tier: 1, cls: 'C', arch: 'support',  name: '클레릭',  emoji: '✨' },
     rogue:    { tier: 1, cls: 'R', arch: 'assassin', name: '로그',    emoji: '🗡️' },
     summoner: { tier: 1, cls: 'N', arch: 'summon',   name: '서머너',  emoji: '🌿' },
-    // Tier 2 — 성급 상한 ★2 (조합 매트릭스 v1.5) — 순혈 7
+    // Tier 2 — (조합 매트릭스 v1.5) 순혈 7
     grandknight:  { tier: 2, cls: 'K', arch: 'tank',     name: '그랜드나이트', emoji: '🏰' },
     berserker:    { tier: 2, cls: 'W', arch: 'melee',    name: '버서커',       emoji: '🪓' },
     hawkeye:      { tier: 2, cls: 'A', arch: 'ranged',   name: '호크아이',     emoji: '🦅', range: 8 },
@@ -81,7 +81,7 @@
     exorcist:    { tier: 2, cls: 'C', arch: 'support',  name: '엑소시스트',   emoji: '📿' },
     druid:       { tier: 2, cls: 'C', arch: 'support',  name: '드루이드',     emoji: '🍃' },
     hunter:      { tier: 2, cls: 'R', arch: 'assassin', name: '헌터',         emoji: '🐺' },
-    // Tier 3 — 영웅 칭호, 성급 없음 (조합 매트릭스 v1.5 §3) — 순혈 7
+    // Tier 3 — 영웅 칭호 (조합 매트릭스 v1.5 §3) — 순혈 7
     sentinel:     { tier: 3, cls: 'K', arch: 'tank',     name: '센티넬',       emoji: '🏯' },
     warlord:      { tier: 3, cls: 'W', arch: 'melee',    name: '워로드',       emoji: '🦾', splash: 1 },
     stormranger:  { tier: 3, cls: 'A', arch: 'ranged',   name: '스톰레인저',   emoji: '🌩️', splash: 1 },
@@ -137,7 +137,12 @@
     }
   };
 
-  var STAR_CAP = { 1: 3, 2: 3, 3: 3 }; // 성급 통일 (v0.8): 전 티어 ★3까지, ★3 둘 = 상위 티어 진화
+  // 레벨 시스템 (v0.9): 웨이브 전투 참여 = +1Lv (보스 +2), 성급 합성 폐지
+  var LV_MAX = { 1: 3, 2: 3, 3: 3 };          // 티어별 최대 레벨 — 같은 티어 Max 둘 = 상위 티어 진화
+  var LEVELUP = { normal: 1, boss: 2 };        // 웨이브 종료 시 레벨 상승량
+
+  // 레벨업권 아이템: 필드 1칸 차지, 유닛에 드래그 = +1Lv 소모 (Max 대상은 스왑만)
+  var TICKET = { name: '레벨업권', emoji: '🎫', desc: '유닛에 겹치면 +1레벨 (Max 유닛에는 사용 불가)' };
 
   // ---- 클래스 스킬 (마나 가득 시 자동 시전, 기준표 §5) ----
   var SKILLS = {
@@ -175,8 +180,11 @@
     priceRandT1: 2,              // 랜덤 T1 (확정보다 저렴)
     priceT2: 9,                  // 확정 T2 (판매가 8G보다 비싸게 — 되팔이 차단)
     priceRandT2: 7,              // 랜덤 T2
-    priceT3: 18,                 // 확정 T3 (판매가 상한 16G보다 비싸게)
+    priceT3: 18,                 // 확정 T3
     priceRandT3: 14,             // 랜덤 T3
+    priceTicket: 4,              // 레벨업권
+    ticketChance: 0.15,          // 슬롯이 레벨업권일 확률
+    sell: { 1: 2, 2: 6, 3: 12, ticket: 2 }, // 판매가 = 티어 고정 (레벨은 공짜라 환급 미가산 — 차익 차단)
     reroll: 2,
     income: 4,                   // 웨이브 시작 기본 지급
     startBonus: 4,               // 런 시작 추가 지급 (1웨이브 총 8G)
@@ -196,11 +204,12 @@
 
   // ---- 적 스케일링 (설계 §6, 기준표 §7 예산 공식) ----
   // 12웨이브 체제: 웨이브 성장률을 완만화하고 챕터 배율로 장기 곡선 형성
+  // v0.9: 웨이브 레벨업(참여 시 ×1.5/웨이브 성장) 대응 — 성장률 대폭 상향
   var ENEMY = {
     HP_BASE: 260,
-    HP_GROWTH: 1.22,
+    HP_GROWTH: 1.35,
     DPS_BASE: 11,
-    DPS_GROWTH: 1.15,
+    DPS_GROWTH: 1.22,
     AS: 0.8,
     MELEE_RANGE: 42,
     BOSS_HP_MULT: 1.6,
@@ -210,7 +219,7 @@
 
   // ---- 챕터 정의: 9챕터 × 12웨이브, 4웨이브마다 보스 (4·8·12) ----
   // 난이도 = CHAPTER_MULT_GROWTH^(챕터-1) 기하 곡선. 물량형/정예형 교대.
-  var CHAPTER_MULT_GROWTH = 1.28;
+  var CHAPTER_MULT_GROWTH = 1.45;
   var CHAPTER_NAMES = [
     '초원의 침공', '강철 요새', '어둠의 숲',
     '사막의 유적', '얼어붙은 협곡', '화산 지대',
@@ -240,7 +249,8 @@
 
   global.DATA = {
     GEOM: GEOM, ARCHETYPES: ARCHETYPES, CLASSES: CLASSES, UNITS: UNITS,
-    EVOLUTION: EVOLUTION, STAR_CAP: STAR_CAP, SKILLS: SKILLS, SKILL_VALS: SKILL_VALS,
+    EVOLUTION: EVOLUTION, LV_MAX: LV_MAX, LEVELUP: LEVELUP, TICKET: TICKET,
+    SKILLS: SKILLS, SKILL_VALS: SKILL_VALS,
     EXECUTE: EXECUTE, SUMMON: SUMMON,
     SHOP: SHOP, ENEMY: ENEMY, CHAPTERS: CHAPTERS,
     WAVES_PER_CHAPTER: WAVES_PER_CHAPTER, BOSS_EVERY: BOSS_EVERY, LIVES: LIVES,

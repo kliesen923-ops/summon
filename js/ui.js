@@ -85,6 +85,11 @@
           '<div class="cl' + tierClass(u.tier) + '">' +
           cl.icon + ' ' + cl.name + (u.tier > 1 ? ' · T' + u.tier : '') + '</div>';
         el.className = 'card' + (buyable ? '' : ' off');
+      } else if (slot.kind === 'ticket') {
+        body = '<div class="em">' + D.TICKET.emoji + '</div>' +
+          '<div class="nm">' + D.TICKET.name + '</div>' +
+          '<div class="cl">유닛 +1레벨</div>';
+        el.className = 'card rand' + (buyable ? '' : ' off');
       } else {
         body = '<div class="em">❓</div>' +
           '<div class="nm">랜덤 유닛</div>' +
@@ -102,6 +107,9 @@
       if (slot.kind === 'unit') { // 확정 카드 호버 → 스탯·스킬 툴팁 (패널 위 고정 위치)
         el.onmouseenter = function () { showUnitTooltip(slot.unitId, 1, 202, 552); };
         el.onmouseleave = hideTooltip;
+      } else if (slot.kind === 'ticket') {
+        el.onmouseenter = function () { showTicketTooltip(202, 552); };
+        el.onmouseleave = hideTooltip;
       }
       row.appendChild(el);
     });
@@ -117,16 +125,16 @@
     tank: '탱킹', melee: '근접딜', ranged: '원거리딜', aoe: '광역마법',
     support: '지원힐', assassin: '암살처형', summon: '소환'
   };
-  function unitTooltipHtml(unitId, star, live) {
+  function unitTooltipHtml(unitId, lv, live) {
     var u = D.UNITS[unitId], cl = D.CLASSES[u.cls], sk = D.SKILLS[u.cls];
-    var s = L.statsFor(unitId, star);
-    var stars = '';
-    if (D.STAR_CAP[u.tier] > 1) for (var i = 0; i < star; i++) stars += '★';
+    var s = L.statsFor(unitId, lv);
+    var max = D.LV_MAX[u.tier];
+    var lvTag = 'Lv.' + lv + '/' + max + (lv >= max ? ' MAX' : '');
     var tierTag = u.tier > 1 ? ' <span class="tt-tier' + u.tier + '">T' + u.tier + '</span>' : '';
     var hp = live ? Math.max(0, Math.round(live.hp)) + '/' + s.hp : s.hp;
     var mana = live ? Math.round(live.mana) + '/' + s.manaMax : s.manaMax;
     var html =
-      '<div class="tt-name">' + u.emoji + ' ' + u.name + ' <span style="color:#ffd76a">' + stars + '</span>' + tierTag + '</div>' +
+      '<div class="tt-name">' + u.emoji + ' ' + u.name + ' <span style="color:#ffd76a">' + lvTag + '</span>' + tierTag + '</div>' +
       '<div class="tt-role">' + cl.icon + ' ' + cl.name + ' · ' + ROLE_NAMES[u.arch] + '</div>' +
       '<div class="tt-stats">' +
       '<span>❤️ 체력 ' + hp + '</span><span>⚔️ 공격 ' + s.atk + '</span>' +
@@ -137,10 +145,21 @@
       '<div class="tt-skill"><b>' + sk.name + '</b> — ' + sk.desc + '</div>';
     return html;
   }
-  function showUnitTooltip(unitId, star, x, y, live) {
+  function showUnitTooltip(unitId, lv, x, y, live) {
     var el = document.getElementById('tooltip');
-    el.innerHTML = unitTooltipHtml(unitId, star, live);
+    el.innerHTML = unitTooltipHtml(unitId, lv, live);
     el.classList.remove('hidden');
+    placeTooltip(el, x, y);
+  }
+  function showTicketTooltip(x, y) {
+    var el = document.getElementById('tooltip');
+    el.innerHTML =
+      '<div class="tt-name">' + D.TICKET.emoji + ' ' + D.TICKET.name + '</div>' +
+      '<div class="tt-skill">' + D.TICKET.desc + '</div>';
+    el.classList.remove('hidden');
+    placeTooltip(el, x, y);
+  }
+  function placeTooltip(el, x, y) {
     var w = 188, h = el.offsetHeight;
     var px = Math.max(5, Math.min(405 - w - 5, x - w / 2));
     var py = y - h - 42;
@@ -182,7 +201,7 @@
     ctx.fillRect(x, y, w * Math.max(0, Math.min(1, frac)), h);
   }
 
-  function drawUnitSprite(x, y, unitId, star, opts) {
+  function drawUnitSprite(x, y, unitId, lv, opts) {
     var u = D.UNITS[unitId], cl = D.CLASSES[u.cls];
     opts = opts || {};
     var S = opts.size || 52;
@@ -209,24 +228,48 @@
       ctx.arc(x, y, S / 2 + 7, 0, Math.PI * 2);
       ctx.stroke();
     }
-    // 아이콘 + 성급 (텍스트형 이모지 대비: 컬러 이모지 폰트 + 흰색 폴백)
+    // 아이콘 + 레벨 핍 (텍스트형 이모지 대비: 컬러 이모지 폰트 + 흰색 폴백)
     ctx.font = Math.round(S * 0.5) + 'px "Segoe UI Emoji", "Apple Color Emoji", serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
     ctx.fillText(u.emoji, x, y + 1);
-    if (D.STAR_CAP[u.tier] > 1) { // T3+ = 성급 없음 → 별 미표시
+    if (lv > 0) { // 레벨 = ★ 핍 (Max = 티어 상한)
       ctx.font = 'bold ' + (S < 45 ? 9 : 11) + 'px sans-serif';
-      ctx.fillStyle = '#ffd76a';
-      var stars = '';
-      for (var i = 0; i < star; i++) stars += '★';
-      ctx.fillText(stars, x, y - S / 2 - 9);
+      ctx.fillStyle = lv >= D.LV_MAX[u.tier] ? '#ffb046' : '#ffd76a';
+      var pips = '';
+      for (var i = 0; i < lv; i++) pips += '★';
+      ctx.fillText(pips, x, y - S / 2 - 9);
     }
     // HP/마나 바 (전투 중)
     if (opts.hpFrac !== undefined) {
       drawBar(x - S / 2, y + S / 2 + 3, S, 5, opts.hpFrac, '#63c04f');
       drawBar(x - S / 2, y + S / 2 + 9, S, 3, opts.manaFrac, '#5aa2e8');
     }
+  }
+
+  // ---- 레벨업권 (보드 위 아이템 — 유닛과 구분되는 티켓 모양) ----
+  function drawTicket(x, y, opts) {
+    opts = opts || {};
+    var S = opts.size || 46;
+    ctx.save();
+    roundRect(x - S / 2, y - S * 0.32, S, S * 0.64, 7);
+    ctx.fillStyle = '#3a3350';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.strokeStyle = '#ffd76a';
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = Math.round(S * 0.42) + 'px "Segoe UI Emoji", "Apple Color Emoji", serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(D.TICKET.emoji, x, y + 1);
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillStyle = '#ffd76a';
+    ctx.fillText('+1Lv', x, y - S * 0.32 - 8);
+    ctx.restore();
   }
 
   // ---- 정령 (소환수) — 본체와 확실히 구분되는 소형 원형 ----
@@ -408,28 +451,30 @@
       view.battle.units.forEach(function (u) {
         if (!u.alive) return;
         if (u.isSpirit) { drawSpirit(u); return; }
-        drawUnitSprite(u.x, u.y, u.unitId, u.star, {
+        drawUnitSprite(u.x, u.y, u.unitId, u.lv, {
           hpFrac: u.hp / u.maxHp, manaFrac: u.mana / u.manaMax,
           shield: u.shield, time: t
         });
       });
       view.battle.fx.forEach(drawFx);
     } else {
-      // 준비 모드: 보드 유닛
+      // 준비 모드: 보드 유닛 + 레벨업권 (레벨업권은 전투 중 미표시 — v0.9)
       view.board.forEach(function (b) {
         if (view.drag && view.drag.uid === b.uid) return;
-        drawUnitSprite(G.cellX(b.col), G.cellY(b.row), b.unitId, b.star,
+        if (b.kind === 'ticket') { drawTicket(G.cellX(b.col), G.cellY(b.row)); return; }
+        drawUnitSprite(G.cellX(b.col), G.cellY(b.row), b.unitId, b.lv,
           { hint: view.hints.has('u' + b.uid), time: t });
       });
     }
 
     if (view.mode !== 'battle') drawSellZone(view);
 
-    // 드래그 중 유닛
+    // 드래그 중 유닛/레벨업권
     if (view.drag) {
       var d = view.drag;
       ctx.globalAlpha = 0.85;
-      drawUnitSprite(d.x, d.y, d.unitId, d.star, { time: t });
+      if (d.kind === 'ticket') drawTicket(d.x, d.y);
+      else drawUnitSprite(d.x, d.y, d.unitId, d.lv, { time: t });
       ctx.globalAlpha = 1;
     }
   }
@@ -495,7 +540,7 @@
     setPanelMsg: setPanelMsg, setTopbar: setTopbar, setGold: setGold, setLives: setLives,
     showShop: showShop, clearShop: clearShop,
     setButtons: setButtons, setStartLabel: setStartLabel,
-    showUnitTooltip: showUnitTooltip, hideTooltip: hideTooltip,
+    showUnitTooltip: showUnitTooltip, showTicketTooltip: showTicketTooltip, hideTooltip: hideTooltip,
     showResult: showResult,
     cellAt: cellAt
   };
